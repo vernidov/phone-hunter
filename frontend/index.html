@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Hunter BETA-1.0</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='0' y='0' width='64' height='64' rx='12' ry='12' fill='%23000'/%3E%3Crect x='1.5' y='1.5' width='61' height='61' rx='11' ry='11' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%23fff' stroke-width='1.2' stroke-dasharray='6 5' opacity='.5'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cline x1='19' y1='32' x2='45' y2='32' stroke='%23fff' stroke-width='1.5'/%3E%3Cline x1='32' y1='19' x2='32' y2='45' stroke='%23fff' stroke-width='1.5'/%3E%3Cellipse cx='32' cy='32' rx='7' ry='5' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='2.5' fill='%23fff'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            --bg: #0a0a0a; --text: #b0b0b0; --bright: #e0e0e0;
+            --accent: #4a9eff; --green: #4caf50; --red: #f44336;
+            --yellow: #ff9800; --dim: #505050;
+            --font: 'Courier New', 'Consolas', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: var(--font); min-height: 100vh;
+            display: flex; justify-content: center; align-items: center; padding: 14px;
+            overflow: hidden;
+        }
+        #matrixCanvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; pointer-events: none; opacity: 0.12;
+        }
+        .container { width: 100%; max-width: 1100px; position: relative; z-index: 1; }
+        .logo-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
+        .logo-row svg { width: 38px; height: 38px; flex-shrink: 0; filter: drop-shadow(0 0 6px rgba(255,255,255,0.3)); }
+        .logo-title { color: var(--bright); font-size: 13px; letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 0 10px rgba(74,158,255,0.3); }
+        .logo-sub { color: var(--dim); font-size: 8px; letter-spacing: 2px; text-align: center; }
+        .logo-sub span { color: var(--accent); }
+        .beta-badge {
+            display: inline-block; background: var(--accent); color: #000;
+            font-size: 8px; font-weight: bold; padding: 2px 6px; border-radius: 3px;
+            letter-spacing: 1px; margin-left: 6px; vertical-align: middle;
+        }
+        .art {
+            color: #999; font-size: 7px; line-height: 1.05; text-align: center;
+            margin: 8px 0; user-select: none; white-space: pre;
+            text-shadow: 0 0 20px rgba(74,158,255,0.3), 0 0 50px rgba(74,158,255,0.15);
+        }
+        .divider {
+            background: linear-gradient(90deg, transparent, #1a1a1a, #2a2a2a, #1a1a1a, transparent);
+            height: 1px; color: transparent; margin: 4px 0;
+        }
+        .search-line {
+            display: flex; border: 1px solid #1a1a1a; margin-bottom: 6px;
+            background: #0c0c0c; transition: all 0.3s ease;
+        }
+        .search-line:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(74,158,255,0.15), inset 0 0 20px rgba(74,158,255,0.03);
+        }
+        .search-line .prompt {
+            padding: 10px 12px; color: var(--accent); font-weight: bold;
+            font-size: 11px; border-right: 1px solid #1a1a1a;
+            text-shadow: 0 0 8px rgba(74,158,255,0.4);
+        }
+        .search-line input {
+            flex: 1; padding: 10px 12px; background: transparent; border: none;
+            color: var(--bright); font-family: var(--font); font-size: 12px;
+            outline: none; letter-spacing: 1px;
+        }
+        .search-line input::placeholder { color: #2a2a2a; }
+        .search-line button {
+            padding: 10px 14px; background: transparent; border: none;
+            border-left: 1px solid #1a1a1a; color: var(--accent);
+            font-family: var(--font); font-size: 10px; cursor: pointer;
+            letter-spacing: 1px; text-transform: uppercase; transition: 0.15s;
+            position: relative; overflow: hidden;
+        }
+        .search-line button::after {
+            content: ''; position: absolute; top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+            transition: left 0.3s;
+        }
+        .search-line button:hover::after { left: 100%; }
+        .search-line button:hover { background: #111; color: #fff; }
+        .search-line button:disabled { color: #333; cursor: not-allowed; }
+        .main-row { display: flex; gap: 8px; height: 440px; }
+        .output {
+            flex: 1; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
+            padding: 12px 14px; font-size: 10px; line-height: 1.65;
+            color: var(--dim); white-space: pre-wrap; word-break: break-all;
+            overflow-y: auto; min-width: 0;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            scroll-behavior: smooth;
+        }
+        .output .h { color: var(--accent); font-weight: bold; }
+        .output .s { color: var(--bright); }
+        .output .k { color: #9e9e9e; } .output .v { color: #8bc34a; }
+        .output .ok { color: var(--green); } .output .warn { color: var(--yellow); }
+        .output .err { color: var(--red); } .output .c { color: #333; }
+        .output .loc { color: #fff; font-weight: bold; }
+        .graph-panel {
+            width: 280px; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
+            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .graph-header {
+            padding: 8px 12px; border-bottom: 1px solid #1a1a1a;
+            font-size: 9px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase;
+        }
+        .graph-body { flex: 1; display: flex; align-items: center; justify-content: center; }
+        .graph-svg { width: 100%; height: 100%; }
+        .g-node { cursor: pointer; transition: all 0.2s; }
+        .g-node:hover rect { filter: brightness(1.4); }
+        .g-node:hover text { fill: #fff !important; font-size: 10px !important; }
+        .status-line {
+            display: flex; justify-content: space-between; margin-top: 6px;
+            font-size: 8px; color: #333; letter-spacing: 1px;
+        }
+        .status-line .on { color: var(--green); animation: statusPulse 2s infinite; }
+        .status-line .off { color: var(--red); }
+        @keyframes statusPulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        @media (max-width: 900px) {
+            .main-row { flex-direction: column; height: auto; }
+            .graph-panel { width: 100%; height: 250px; }
+            .art { font-size: 5px; }
+        }
+    </style>
+</head>
+<body>
+<canvas id="matrixCanvas"></canvas>
+
+<div class="container">
+    <div class="logo-row">
+        <svg viewBox="0 0 64 64" width="38" height="38">
+            <rect x="0" y="0" width="64" height="64" rx="12" ry="12" fill="#000"/>
+            <rect x="1.5" y="1.5" width="61" height="61" rx="11" ry="11" fill="none" stroke="#fff" stroke-width="1.5"/>
+            <circle cx="32" cy="32" r="24" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="6 5" opacity="0.5"/>
+            <circle cx="32" cy="32" r="18" fill="none" stroke="#fff" stroke-width="0.8" stroke-dasharray="4 5" opacity="0.35"/>
+            <line x1="32" y1="2" x2="32" y2="10" stroke="#fff" stroke-width="0.8" opacity="0.4"/>
+            <line x1="32" y1="54" x2="32" y2="62" stroke="#fff" stroke-width="0.8" opacity="0.4"/>
+            <line x1="2" y1="32" x2="10" y2="32" stroke="#fff" stroke-width="0.8" opacity="0.4"/>
+            <line x1="54" y1="32" x2="62" y2="32" stroke="#fff" stroke-width="0.8" opacity="0.4"/>
+            <circle cx="32" cy="32" r="13" fill="none" stroke="#fff" stroke-width="2"/>
+            <line x1="19" y1="32" x2="45" y2="32" stroke="#fff" stroke-width="1.5"/>
+            <line x1="32" y1="19" x2="32" y2="45" stroke="#fff" stroke-width="1.5"/>
+            <path d="M19 26 L19 19 L26 19" fill="none" stroke="#fff" stroke-width="2"/>
+            <path d="M45 26 L45 19 L38 19" fill="none" stroke="#fff" stroke-width="2"/>
+            <path d="M19 38 L19 45 L26 45" fill="none" stroke="#fff" stroke-width="2"/>
+            <path d="M45 38 L45 45 L38 45" fill="none" stroke="#fff" stroke-width="2"/>
+            <ellipse cx="32" cy="32" rx="7" ry="5" fill="none" stroke="#fff" stroke-width="2"/>
+            <circle cx="32" cy="32" r="2.5" fill="#fff"/>
+            <circle cx="33" cy="31" r="0.8" fill="#000"/>
+            <circle cx="9" cy="9" r="2" fill="#fff"/><circle cx="55" cy="9" r="2" fill="#fff"/>
+            <circle cx="9" cy="55" r="2" fill="#fff"/><circle cx="55" cy="55" r="2" fill="#fff"/>
+            <circle cx="32" cy="4" r="1.5" fill="#fff"/><circle cx="32" cy="60" r="1.5" fill="#fff"/>
+            <line x1="11" y1="11" x2="23" y2="23" stroke="#fff" stroke-width="0.6" opacity="0.35"/>
+            <line x1="53" y1="11" x2="41" y2="23" stroke="#fff" stroke-width="0.6" opacity="0.35"/>
+            <line x1="11" y1="53" x2="23" y2="41" stroke="#fff" stroke-width="0.6" opacity="0.35"/>
+            <line x1="53" y1="53" x2="41" y2="41" stroke="#fff" stroke-width="0.6" opacity="0.35"/>
+        </svg>
+        <div>
+            <div class="logo-title">Phone Hunter <span class="beta-badge">BETA-1.0</span></div>
+            <div class="logo-sub">Created by <span>VERNIDOV</span></div>
+        </div>
+    </div>
+
+    <pre class="art">
+ ⠀⠀⠀⠀⣿⠲⠤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⣸⡏⠀⠀⠀⠉⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⣿⠀⠀⠀⠀⠀⠀⠀⠉⠲⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⢰⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠲⣄⠀⠀⠀⡰⠋⢙⣿⣦⡀⠀⠀⠀⠀⠀
+⠸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣙⣦⣮⣤⡀⣸⣿⣿⣿⣆⠀⠀⠀⠀
+⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⠀⣿⢟⣫⠟⠋⠀⠀⠀⠀
+⠀⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⣿⣿⣿⣷⣷⣿⡁⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⢸⣿⣿⣧⣿⣿⣆⠙⢆⡀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢾⣿⣤⣿⣿⣿⡟⠹⣿⣿⣿⣿⣷⡀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣧⣴⣿⣿⣿⣿⠏⢧⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⠈⢳⡀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡏⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⢳
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠸⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡇⢠⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠃⢸⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣼⢸⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⢸⣿⣿⣿⣿⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠛⠻⠿⣿⣿⣿⡿⠿⠿⠿⠿⠿⢿⣿⣿⠏⠀⠀⠀
+    </pre>
+
+    <div class="divider"></div>
+
+    <div class="search-line">
+        <span class="prompt">root@osint:~$</span>
+        <input type="text" id="phoneInput" placeholder="search --phone +79001234567" autofocus spellcheck="false">
+        <button id="searchBtn" onclick="doSearch()">Execute</button>
+        <button onclick="clearAll()" style="border-left:1px solid #1a1a1a;color:var(--dim);">Clear</button>
+    </div>
+
+    <div class="main-row">
+        <div class="output" id="output">
+            <span class="c"># Phone Hunter BETA-1.0</span>
+            <span class="c"># Created by VERNIDOV</span>
+            <span class="c">#</span>
+            <span class="c"># READY. Enter phone number and press Execute.</span>
+        </div>
+        <div class="graph-panel">
+            <div class="graph-header">[ GRAPH ]</div>
+            <div class="graph-body">
+                <svg class="graph-svg" id="graphSvg" viewBox="0 0 260 400">
+                    <text x="130" y="200" text-anchor="middle" fill="#333" font-size="9" font-family="monospace">No data</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-line">
+        <span id="statusText">● <span class="off">OFFLINE</span></span>
+        <span>127.0.0.1:8000</span>
+        <span id="queryCount">0 queries</span>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const chars = 'アイウエオカキクケコサシスセソタチツテト01';
+    const fontSize = 14;
+    const columns = Math.floor(canvas.width / fontSize);
+    const drops = Array(columns).fill(1);
+
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(10,10,15,0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#4a9eff';
+        ctx.font = fontSize + 'px monospace';
+        for (let i = 0; i < drops.length; i++) {
+            const text = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 35);
+    window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+    const API = 'http://127.0.0.1:8000/api/v1';
+    let qc = +(localStorage.getItem('hqc') || '0');
+    let cr = null;
+    const statusEl = document.getElementById('statusText');
+    const countEl = document.getElementById('queryCount');
+    countEl.textContent = qc + ' queries';
+
+    async function checkServer() {
+        try {
+            const r = await fetch('http://127.0.0.1:8000/');
+            statusEl.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>';
+        } catch(e) {
+            statusEl.innerHTML = '● <span class="off">OFFLINE</span>';
+        }
+    }
+    checkServer(); setInterval(checkServer, 10000);
+
+    document.getElementById('phoneInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+    function hj(json) {
+        return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/("(?:[^"\\]|\\.)*")\s*:/g,'<span class="k">$1</span>:')
+            .replace(/:\s*("(?:[^"\\]|\\.)*")/g,': <span class="v">$1</span>')
+            .replace(/:\s*(\d+\.?\d*)/g,': <span class="n">$1</span>')
+            .replace(/([{}[\]])/g,'<span class="c">$1</span>');
+    }
+
+    function drawGraph(phone, country, region, city, operator) {
+        const svg = document.getElementById('graphSvg');
+        const shortPhone = phone.length > 12 ? phone.slice(0,9)+'...' : phone;
+        const allNodes = [
+            { text: shortPhone, color: '#4caf50' },
+            { text: country || null, color: '#4a9eff' },
+            { text: region || null, color: '#ff9800' },
+            { text: city || null, color: '#f44336' },
+            { text: operator || null, color: '#e0e0e0' },
+        ];
+        const nodes = allNodes.filter(n => n.text);
+        if (nodes.length === 0) {
+            svg.innerHTML = '<text x="130" y="200" text-anchor="middle" fill="#333" font-size="9" font-family="monospace">No data</text>';
+            return;
+        }
+        const spacing = 380 / (nodes.length + 1);
+        const startY = 50;
+        let s = '';
+        for (let i = 0; i < nodes.length - 1; i++) {
+            const y1 = startY + i * spacing + 14;
+            const y2 = startY + (i + 1) * spacing - 14;
+            s += `<line x1="130" y1="${y1}" x2="130" y2="${y2}" stroke="#333" stroke-width="1"/>`;
+            const my = (y1 + y2) / 2;
+            s += `<polygon points="127,${my-4} 133,${my} 127,${my+4}" fill="#444"/>`;
+        }
+        for (let i = 0; i < nodes.length; i++) {
+            const y = startY + i * spacing;
+            s += `<g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a1a2e');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a12');this.querySelector('text').setAttribute('fill','${nodes[i].color}');">`;
+            s += `<rect x="60" y="${y-12}" width="140" height="24" rx="4" fill="#0a0a12" stroke="${nodes[i].color}" stroke-width="1.5"/>`;
+            s += `<text x="130" y="${y+4}" text-anchor="middle" fill="${nodes[i].color}" font-size="9" font-family="Courier New,monospace">${nodes[i].text}</text>`;
+            s += `</g>`;
+        }
+        svg.innerHTML = s;
+    }
+
+    async function doSearch() {
+        const raw = document.getElementById('phoneInput').value.trim();
+        if (!raw) return;
+        const btn = document.getElementById('searchBtn');
+        const out = document.getElementById('output');
+        btn.disabled = true; btn.textContent = '...';
+        out.innerHTML = '<span class="c">[~] Scanning...</span>';
+
+        try {
+            const resp = await fetch(API + '/search', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: raw })
+            });
+            const data = await resp.json(); cr = data;
+            const r = data.result;
+
+            const city = r.hlr.city || r.geo.city || '';
+            const region = r.hlr.region || r.geo.region_name || '';
+            const area = r.hlr.area || '';
+            const country = r.validation.country || r.hlr.country || '';
+            const operator = r.validation.operator || r.hlr.provider || '';
+
+            drawGraph(r.query.normalized, country, region, city, operator);
+
+            let log = [];
+            log.push(`<span class="h">═══ MAIN ═══</span>`);
+            log.push(`<span class="s">Phone:</span>    ${r.query.normalized}`);
+            log.push(`<span class="s">Operator:</span> <span class="loc">${operator||'—'}</span>`);
+            log.push(`<span class="s">Country:</span>  ${country||'—'}`);
+            log.push('');
+            log.push(`<span class="h">═══ LOCATION ═══</span>`);
+            if(city) log.push(`<span class="s">City:</span>     <span class="loc">${city}</span>`);
+            if(region) log.push(`<span class="s">Region:</span>   <span class="loc">${region}</span>`);
+            if(area) log.push(`<span class="s">District:</span>  <span class="loc">${area}</span>`);
+            log.push('');
+            const risk=r.risk_score;
+            log.push(`<span class="h">═══ RISK ═══</span>`);
+            log.push(`<span class="s">Score:</span>    <span class="${risk>70?'err':risk>30?'warn':'ok'}">${risk}/100</span>`);
+            log.push('');
+            log.push(`<span class="h">═══ MESSENGERS ═══</span>`);
+            for(const[k,v] of Object.entries(r.messengers)) log.push(`  ${k}: ${v?'<span class="ok">✓</span>':'<span class="err">✗</span>'}`);
+            log.push('');
+            log.push(`<span class="h">═══ LEAKS ═══</span>`);
+            if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(`  <span class="warn">⚠</span> ${l.name}`); }
+            else log.push(`  <span class="ok">✓ CLEAN</span>`);
+            log.push('');
+            log.push(`<span class="h">═══ FRAUD ═══</span>`);
+            if(r.fraud.has_complaints) log.push(`  <span class="err">⚠</span> ${r.fraud.tags.join(', ')}`);
+            else log.push(`  <span class="ok">✓ CLEAN</span>`);
+            log.push('');
+            log.push(`<span class="h">═══ LINE ═══</span>`);
+            log.push(`  ${r.line_type.is_business?'<span class="warn">BUSINESS</span>':r.line_type.is_mass_activation?'<span class="warn">MASS ACTIVATION</span>':'<span class="ok">PERSONAL</span>'}`);
+            log.push('');
+            log.push(`<span class="h">═══ PORT ═══</span>`);
+            log.push(`  ${r.port.ported?'<span class="warn">PORTED</span>':'<span class="ok">NATIVE</span>'}`);
+
+            out.innerHTML = log.join('\n');
+            qc++; localStorage.setItem('hqc', qc); countEl.textContent = qc + ' queries';
+
+        } catch(e) {
+            out.innerHTML = '<span class="err">[!] CONNECTION REFUSED</span>';
+        }
+        btn.disabled = false; btn.textContent = 'Execute';
+    }
+
+    function clearAll() {
+        document.getElementById('phoneInput').value = '';
+        document.getElementById('output').innerHTML = '<span class="c"># Phone Hunter BETA-1.0</span>\n<span class="c"># READY.</span>';
+        document.getElementById('graphSvg').innerHTML = '<text x="130" y="200" text-anchor="middle" fill="#333" font-size="9" font-family="monospace">No data</text>';
+        cr = null; document.getElementById('phoneInput').focus();
+    }
+</script>
+</body>
+</html>

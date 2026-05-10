@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - ./data:/app/data
+      - ./osint_hunter.db:/app/osint_hunter.db
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
