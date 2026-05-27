@@ -19,7 +19,7 @@ class FraudChecker:
         }
         clean = phone.replace("+", "").replace("-", "").replace(" ", "")
         
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             headers = {
                 "User-Agent": "Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36",
                 "Accept": "application/json, text/plain, */*",

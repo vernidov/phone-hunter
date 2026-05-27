@@ -1,40 +1,56 @@
 import httpx
 from fake_useragent import UserAgent
-from bs4 import BeautifulSoup
 import asyncio
+import re
 
 class SocialSearcher:
-    """Поиск номера по соцсетям через открытый веб-поиск и Google Dorking."""
+    """Поиск номера по соцсетям через несколько поисковиков."""
     
     def __init__(self):
         self.ua = UserAgent()
-        self.search_engines = ["https://www.google.com/search?q=", "https://search.yahoo.com/search?p=", "https://www.bing.com/search?q="]
     
     async def search(self, phone: str) -> dict:
-        result = {"vk": None, "telegram": None, "whatsapp": None, "viber": None, "instagram": None, "facebook": None, "ok": None, "other_mentions": []}
+        result = {"vk": None, "telegram": None, "whatsapp": None, "viber": None, 
+                  "instagram": None, "facebook": None, "ok": None, "other_mentions": []}
         
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-            headers = {"User-Agent": self.ua.random}
-            queries = [
-                f'"{phone}" site:vk.com',
-                f'"{phone}" site:ok.ru',
-                f'"{phone}" site:telegram.org',
-                f'"{phone}" site:instagram.com',
-            ]
+        clean = phone.replace("+", "").replace("-", "").replace(" ", "")
+        
+        async with httpx.AsyncClient(timeout=15) as client:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "ru-RU,ru;q=0.9",
+                "Accept": "text/html,application/xhtml+xml"
+            }
             
-            for query in queries:
-                try:
-                    resp = await client.get(f"https://www.google.com/search?q={query}&hl=ru", headers=headers)
-                    if resp.status_code == 200:
-                        soup = BeautifulSoup(resp.text, "html.parser")
-                        links = [a.get("href") for a in soup.find_all("a") if a.get("href") and "http" in a.get("href")]
-                        for link in links[:5]:
-                            if "vk.com" in link: result["vk"] = link
-                            if "ok.ru" in link: result["ok"] = link
-                            if "t.me" in link or "telegram" in link: result["telegram"] = link
-                            if "instagram.com" in link: result["instagram"] = link
-                            result["other_mentions"].append(link)
-                    await asyncio.sleep(1)
-                except:
-                    pass
+            # Поиск VK
+            try:
+                resp = await client.get(f"https://vk.com/search?c%5Bphone%5D={clean}", headers=headers, )
+                if resp.status_code == 200:
+                    profiles = re.findall(r'href="/(id\d+|[\w.]+)"', resp.text)
+                    if profiles:
+                        result["vk"] = f"https://vk.com/{profiles[0]}"
+                await asyncio.sleep(1)
+            except:
+                pass
+            
+            # Поиск OK.ru
+            try:
+                resp = await client.get(f"https://ok.ru/dk?st.cmd=searchResult&st.query={clean}", headers=headers, )
+                if resp.status_code == 200:
+                    profiles = re.findall(r'href="(/profile/\d+)"', resp.text)
+                    if profiles:
+                        result["ok"] = f"https://ok.ru{profiles[0]}"
+                await asyncio.sleep(1)
+            except:
+                pass
+            
+            # Поиск через Google
+            try:
+                resp = await client.get(f"https://www.google.com/search?q=%22{clean}%22&hl=ru", headers=headers, )
+                if resp.status_code == 200:
+                    links = [a for a in re.findall(r'https?://[^\s"<>]+', resp.text) if len(a) > 20][:10]
+                    result["other_mentions"] = links
+            except:
+                pass
+        
         return result

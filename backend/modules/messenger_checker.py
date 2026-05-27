@@ -1,40 +1,52 @@
 import httpx
 from fake_useragent import UserAgent
 import asyncio
+import re
 
 class MessengerChecker:
-    """Проверка наличия аккаунтов в мессенджерах без API-ключей."""
+    """Проверка мессенджеров через прямые запросы."""
     
     def __init__(self):
         self.ua = UserAgent()
     
     async def check(self, phone: str) -> dict:
         result = {"telegram": False, "whatsapp": False, "viber": False, "signal": False, "wechat": False}
-        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
-            headers = {"User-Agent": self.ua.random, "X-Requested-With": "XMLHttpRequest"}
+        clean = phone.replace("+", "").replace("-", "").replace(" ", "")
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             
-            # Telegram (прямая проверка через веб)
+            # Telegram
             try:
-                resp = await client.get(f"https://t.me/+{phone.replace('+','')}", headers=headers)
-                result["telegram"] = "tgme_page_title" in resp.text
+                resp = await client.get(f"https://t.me/+{clean}", headers=headers, )
+                result["telegram"] = "tgme_page_title" in resp.text or "tgme_action_button" in resp.text
             except:
                 pass
             
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.3)
             
-            # WhatsApp (проверка через публичный статус)
+            # WhatsApp
             try:
-                resp = await client.get(f"https://wa.me/{phone.replace('+','')}", headers=headers)
-                result["whatsapp"] = resp.status_code == 200
+                resp = await client.get(f"https://wa.me/{clean}", headers=headers, )
+                result["whatsapp"] = "WhatsApp" in resp.text or resp.status_code == 200
             except:
                 pass
             
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.3)
             
-            # Viber (проверка через публичную ссылку)
+            # Viber
             try:
-                resp = await client.get(f"viber://chat?number={phone.replace('+','')}", headers=headers)
-                result["viber"] = True
+                resp = await client.get(f"https://invite.viber.com/?g2=AQB{clean}", headers=headers, )
+                result["viber"] = resp.status_code == 200 and len(resp.text) > 500
+            except:
+                pass
+            
+            await asyncio.sleep(0.3)
+            
+            # Signal
+            try:
+                resp = await client.get(f"https://signal.me/#p/+{clean}", headers=headers, )
+                result["signal"] = "signal" in resp.text.lower()
             except:
                 pass
         
