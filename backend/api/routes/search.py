@@ -21,8 +21,3 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
         increment_requests(x_telegram_id)
     result = await aggregator.full_search(phone)
     return {"query_id":"direct","result":result}
-@router.post("/upgrade")
-async def upgrade(x_telegram_id: str = Header(...)):
-    DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "users.db")
-    conn = sqlite3.connect(DB_PATH); conn.execute("UPDATE users SET is_premium=1 WHERE telegram_id=?",(x_telegram_id,)); conn.commit(); conn.close()
-    return {"status":"ok"}
