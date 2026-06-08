@@ -298,7 +298,7 @@
     const se = document.getElementById('statusText'), ce = document.getElementById('queryCount');
     ce.textContent = qc+' queries';
     async function cs() {
-        try { const r = await fetch('http://127.0.0.1:8000/'); se.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>'; }
+        try { const r = await fetch('https://phone-hunter.onrender.com/'); se.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>'; }
         catch(e) { se.innerHTML = '● <span class="off">OFFLINE</span>'; }
     }
     cs(); setInterval(cs, 10000);
