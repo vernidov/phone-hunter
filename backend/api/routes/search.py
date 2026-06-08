@@ -17,7 +17,17 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
         user = get_user(x_telegram_id)
         if not user: create_user(x_telegram_id); user = get_user(x_telegram_id)
         if not user["is_premium"] and user["requests_today"] >= FREE_LIMIT:
-            raise HTTPException(status_code=429, detail="Daily limit (5) reached.")
+            raise HTTPException(status_code=429, detail=f"Daily limit ({FREE_LIMIT}) reached. Upgrade to premium.")
         increment_requests(x_telegram_id)
     result = await aggregator.full_search(phone)
     return {"query_id":"direct","result":result}
+@router.post("/upgrade")
+async def upgrade(x_telegram_id: str = Header(...)):
+    DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "users.db")
+    conn = sqlite3.connect(DB_PATH); conn.execute("UPDATE users SET is_premium=1 WHERE telegram_id=?",(x_telegram_id,)); conn.commit(); conn.close()
+    return {"status":"ok"}
+@router.get("/profile")
+async def get_profile(x_telegram_id: str = Header(...)):
+    user = get_user(x_telegram_id)
+    if not user: create_user(x_telegram_id); user = get_user(x_telegram_id)
+    return {"telegram_id":user["telegram_id"],"username":user["username"],"requests_today":user["requests_today"],"limit":FREE_LIMIT,"remaining":FREE_LIMIT-user["requests_today"],"is_premium":bool(user["is_premium"]),"created_at":user["created_at"]}
