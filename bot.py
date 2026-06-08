@@ -1,49 +1,70 @@
-import os, asyncio
+import os
+import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-import sqlite3
-DB_PATH = os.path.join(os.path.dirname(__file__), "users.db")
-def get_user(tg):
-    conn=sqlite3.connect(DB_PATH); r=conn.execute("SELECT * FROM users WHERE telegram_id=?",(tg,)).fetchone(); conn.close(); return r
-def create_user(tg,un=""):
-    conn=sqlite3.connect(DB_PATH); conn.execute("INSERT OR IGNORE INTO users (telegram_id,username,last_request_date) VALUES (?,?,date('now'))",(tg,un)); conn.commit(); conn.close()
+from aiogram.types import (
+    InlineKeyboardMarkup, InlineKeyboardButton, 
+    WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
+)
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 WEBAPP_URL = "https://phone-hunter-front.onrender.com"
+ADMIN_USERNAME = "@vernidov"
+
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-@dp.message(Command("start"))
+@dp.message(commands=["start"])
 async def start(message: types.Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="??? Открыть Phone Hunter", web_app=WebAppInfo(url=WEBAPP_URL))]
-    ])
-    await message.answer("?? *Phone Hunter BETA-1.0*\nАвтономный OSINT по номеру телефона\nНажми кнопку чтобы открыть:", reply_markup=kb, parse_mode="Markdown")
+    user = message.from_user
+    name = user.first_name or "РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ"
+    
+    # РџСЂРёРІРµС‚СЃС‚РІРёРµ
+    await message.answer(
+        f"рџ‘‹ РџСЂРёРІРµС‚СЃС‚РІСѓСЋ, *{name}*!\n\n"
+        f"Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ РІ *Phone Hunter BETA-1.0* вЂ” Р°РІС‚РѕРЅРѕРјРЅС‹Р№ OSINT-РёРЅСЃС‚СЂСѓРјРµРЅС‚.\n\n"
+        f"Р”РѕСЃС‚СѓРїРЅРѕ *5 Р±РµСЃРїР»Р°С‚РЅС‹С… Р·Р°РїСЂРѕСЃРѕРІ* РІ РґРµРЅСЊ.\n\n"
+        f"РСЃРїРѕР»СЊР·СѓР№ РєРЅРѕРїРєРё РЅРёР¶Рµ:",
+        parse_mode="Markdown",
+        reply_markup=ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="рџ•µпёЏ РћС‚РєСЂС‹С‚СЊ Phone Hunter", web_app=WebAppInfo(url=WEBAPP_URL))],
+                [KeyboardButton(text="рџ‘¤ РџСЂРѕС„РёР»СЊ"), KeyboardButton(text="рџ’Ћ РџСЂРµРјРёСѓРј")]
+            ],
+            resize_keyboard=True
+        )
+    )
+    
+    # РЈРІРµРґРѕРјР»РµРЅРёРµ СЃРѕР·РґР°С‚РµР»СЋ
+    await bot.send_message(
+        ADMIN_USERNAME,
+        f"рџ”” РќРѕРІС‹Р№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ!\n"
+        f"РРјСЏ: {user.full_name}\n"
+        f"Username: @{user.username or 'РЅРµС‚'}\n"
+        f"ID: {user.id}"
+    )
 
-@dp.message(Command("profile"))
+@dp.message(lambda msg: msg.text == "рџ‘¤ РџСЂРѕС„РёР»СЊ")
 async def profile(message: types.Message):
-    tg = str(message.from_user.id)
-    user = get_user(tg)
-    if not user: create_user(tg, message.from_user.username or ""); user = get_user(tg)
-    remaining = 5 - user["requests_today"]
-    status = "?? Premium" if user["is_premium"] else "?? Free"
-    await message.answer(f"?? *Профиль*\nID: {user['telegram_id']}\nСтатус: {status}\nЗапросов сегодня: {user['requests_today']}/5\nОсталось: {remaining}\nДата регистрации: {user['created_at']}", parse_mode="Markdown")
+    user = message.from_user
+    await message.answer(
+        f"рџ‘¤ *Р’Р°С€ РїСЂРѕС„РёР»СЊ*\n\n"
+        f"РРјСЏ: {user.full_name}\n"
+        f"Username: @{user.username or 'РЅРµС‚'}\n"
+        f"ID: {user.id}\n\n"
+        f"Р—Р°РїСЂРѕСЃРѕРІ СЃРµРіРѕРґРЅСЏ: ?/5\n"
+        f"РЎС‚Р°С‚СѓСЃ: Р±РµСЃРїР»Р°С‚РЅС‹Р№",
+        parse_mode="Markdown"
+    )
 
-@dp.message(Command("balance"))
-async def balance(message: types.Message):
-    await message.answer("?? Пополнение баланса через Telegram Stars пока в разработке.")
-
-@dp.message(Command("buy"))
-async def buy(message: types.Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="?? Premium (30 дней) — 100 ?", callback_data="buy_premium")]
-    ])
-    await message.answer("Выберите тариф:", reply_markup=kb)
-
-@dp.message(Command("help"))
-async def help_cmd(message: types.Message):
-    await message.answer("?? *Команды:*\n/profile — профиль и лимиты\n/balance — пополнить баланс\n/buy — купить Premium\n/start — открыть Phone Hunter", parse_mode="Markdown")
+@dp.message(lambda msg: msg.text == "рџ’Ћ РџСЂРµРјРёСѓРј")
+async def premium(message: types.Message):
+    await message.answer(
+        "рџ’Ћ *Phone Hunter Premium*\n\n"
+        "Р‘РµР·Р»РёРјРёС‚РЅС‹Рµ Р·Р°РїСЂРѕСЃС‹ РЅР° 30 РґРЅРµР№.\n"
+        "Р¦РµРЅР°: 100 Telegram Stars\n\n"
+        "Р”Р»СЏ РїРѕРєСѓРїРєРё РЅР°РїРёС€РёС‚Рµ @vernidov",
+        parse_mode="Markdown"
+    )
 
 async def main():
     await dp.start_polling(bot)
