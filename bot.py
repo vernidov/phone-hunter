@@ -1,4 +1,6 @@
 import os, asyncio, sqlite3, requests
+from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
@@ -7,6 +9,7 @@ BOT_TOKEN = os.environ['BOT_TOKEN']
 CRYPTO_API = os.environ['CRYPTO_API']
 WEBAPP_URL = 'https://phone-hunter-front.onrender.com'
 ADMIN_ID = 7753936402
+PORT = int(os.environ.get('PORT', 10000))
 DB_PATH = 'users.db'
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -42,6 +45,18 @@ def check_invoice(invoice_id):
     headers = {'Crypto-Pay-API-Token': CRYPTO_API}
     r = requests.get(f'{CRYPTO_API_URL}/getInvoices?invoice_ids={invoice_id}', headers=headers)
     return r.json()
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'bot is running')
+
+def start_web():
+    server = HTTPServer(('0.0.0.0', PORT), Handler)
+    server.serve_forever()
+
+Thread(target=start_web, daemon=True).start()
 
 @dp.message(Command('start'))
 async def start(msg: types.Message):
