@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os, asyncio, sqlite3, requests
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
@@ -14,10 +13,10 @@ dp = Dispatcher()
 CRYPTO_API_URL = 'https://pay.crypt.bot/api'
 
 PRICES = {
-    "10": {"requests": 10, "price": 0.99, "name": "10 запросов"},
-    "50": {"requests": 50, "price": 3.99, "name": "50 запросов"},
-    "100": {"requests": 100, "price": 6.99, "name": "100 запросов"},
-    "premium": {"requests": 9999, "price": 9.99, "name": "Безлимит 30 дней"},
+    "10": {"requests": 10, "price": 0.99, "name": "10 requests"},
+    "50": {"requests": 50, "price": 3.99, "name": "50 requests"},
+    "100": {"requests": 100, "price": 6.99, "name": "100 requests"},
+    "premium": {"requests": 9999, "price": 9.99, "name": "Unlimited 30 days"},
 }
 
 def init_db():
@@ -48,32 +47,32 @@ def check_invoice(invoice_id):
 async def start(msg: types.Message):
     u = msg.from_user; create_user(u.id, u.username or '', u.full_name or '')
     await msg.answer(
-        f'?? Привет, *{u.first_name or "пользователь"}*!\n\n*Phone Hunter BETA-1.0*\n?? 5 бесплатных запросов\n?? Оплата TON / USDT через CryptoBot\nАвто-начисление после оплаты!',
+        f'Hi, *{u.first_name or "user"}*!\n\n*Phone Hunter BETA-1.0*\n5 free requests\nTON / USDT via CryptoBot\nAuto-credit after payment!',
         parse_mode='Markdown',
         reply_markup=ReplyKeyboardMarkup(keyboard=[
-            [KeyboardButton(text='??? Открыть Phone Hunter', web_app=WebAppInfo(url=WEBAPP_URL))],
-            [KeyboardButton(text='?? Профиль'), KeyboardButton(text='?? Купить запросы')]
+            [KeyboardButton(text='Open Phone Hunter', web_app=WebAppInfo(url=WEBAPP_URL))],
+            [KeyboardButton(text='Profile'), KeyboardButton(text='Buy requests')]
         ], resize_keyboard=True))
 
-@dp.message(F.text == '?? Профиль')
+@dp.message(F.text == 'Profile')
 async def profile(msg: types.Message):
     u = msg.from_user; create_user(u.id, u.username or '', u.full_name or '')
     d = get_user(u.id); rem = d[3]-d[4] if d else 5
-    await msg.answer(f'?? *Профиль*\n\nИмя: {u.full_name}\nЗапросов: *{rem}*\nСтатус: {"?? Премиум" if d and d[5] else "?? Бесплатный"}', parse_mode='Markdown')
+    await msg.answer(f'*Profile*\n\nName: {u.full_name}\nRequests: *{rem}*\nStatus: {"Premium" if d and d[5] else "Free"}', parse_mode='Markdown')
 
-@dp.message(F.text == '?? Купить запросы')
+@dp.message(F.text == 'Buy requests')
 async def shop(msg: types.Message):
-    await msg.answer('?? *Выберите пакет:*', parse_mode='Markdown',
+    await msg.answer('*Choose package:*', parse_mode='Markdown',
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text='?? 10 запросов — TON', callback_data='buy_10_TON')],
-            [InlineKeyboardButton(text='?? 50 запросов — TON', callback_data='buy_50_TON')],
-            [InlineKeyboardButton(text='?? 100 запросов — TON', callback_data='buy_100_TON')],
-            [InlineKeyboardButton(text='?? Безлимит 30д — TON', callback_data='buy_premium_TON')],
+            [InlineKeyboardButton(text='10 requests - TON', callback_data='buy_10_TON')],
+            [InlineKeyboardButton(text='50 requests - TON', callback_data='buy_50_TON')],
+            [InlineKeyboardButton(text='100 requests - TON', callback_data='buy_100_TON')],
+            [InlineKeyboardButton(text='Unlimited 30d - TON', callback_data='buy_premium_TON')],
             [InlineKeyboardButton(text='---------------', callback_data='none')],
-            [InlineKeyboardButton(text='?? 10 запросов — USDT', callback_data='buy_10_USDT')],
-            [InlineKeyboardButton(text='?? 50 запросов — USDT', callback_data='buy_50_USDT')],
-            [InlineKeyboardButton(text='?? 100 запросов — USDT', callback_data='buy_100_USDT')],
-            [InlineKeyboardButton(text='?? Безлимит 30д — USDT', callback_data='buy_premium_USDT')],
+            [InlineKeyboardButton(text='10 requests - USDT', callback_data='buy_10_USDT')],
+            [InlineKeyboardButton(text='50 requests - USDT', callback_data='buy_50_USDT')],
+            [InlineKeyboardButton(text='100 requests - USDT', callback_data='buy_100_USDT')],
+            [InlineKeyboardButton(text='Unlimited 30d - USDT', callback_data='buy_premium_USDT')],
         ]))
 
 @dp.callback_query(F.data.startswith('buy_'))
@@ -85,13 +84,13 @@ async def buy(call: types.CallbackQuery):
         result = invoice['result']; iid = result['invoice_id']; pay_url = result['bot_invoice_url']
         save_payment(iid, call.from_user.id, pd['price'], pd['requests'], currency)
         await call.message.answer(
-            f'?? *Счёт создан!*\n\nПакет: {pd["name"]}\nСумма: {pd["price"]} {currency}\n\nНажмите кнопку для оплаты:',
+            f'*Invoice created!*\n\nPackage: {pd["name"]}\nAmount: {pd["price"]} {currency}\n\nPress button to pay:',
             parse_mode='Markdown',
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f'?? Оплатить {pd["price"]} {currency}', url=pay_url)],
-                [InlineKeyboardButton(text='?? Проверить оплату', callback_data=f'check_{iid}_{pkg}')]
+                [InlineKeyboardButton(text=f'Pay {pd["price"]} {currency}', url=pay_url)],
+                [InlineKeyboardButton(text='Check payment', callback_data=f'check_{iid}_{pkg}')]
             ]))
-    else: await call.message.answer('? Ошибка создания счёта.')
+    else: await call.message.answer('Error creating invoice.')
     await call.answer()
 
 @dp.callback_query(F.data.startswith('check_'))
@@ -105,19 +104,19 @@ async def check(call: types.CallbackQuery):
             payment = get_payment(iid)
             if payment and payment[6] != 'paid':
                 add_requests(payment[2], pd['requests']); mark_paid(iid)
-                await call.message.answer(f'? Оплата получена! +{pd["requests"]} запросов!')
-                await bot.send_message(payment[2], f'? Оплата прошла! Начислено *{pd["requests"]}* запросов!', parse_mode='Markdown')
-            else: await call.message.answer('? Этот счёт уже оплачен.')
-        else: await call.message.answer('? Оплата ещё не поступила.')
-    else: await call.message.answer('? Счёт не найден.')
+                await call.message.answer(f'Payment received! +{pd["requests"]} requests!')
+                await bot.send_message(payment[2], f'Payment confirmed! *{pd["requests"]}* requests added!', parse_mode='Markdown')
+            else: await call.message.answer('Already paid.')
+        else: await call.message.answer('Payment not received yet.')
+    else: await call.message.answer('Invoice not found.')
     await call.answer()
 
 @dp.message(Command('admin'))
 async def admin(msg: types.Message):
     if msg.from_user.id != ADMIN_ID: return
     conn = sqlite3.connect(DB_PATH); users = conn.execute('SELECT * FROM users ORDER BY rowid DESC LIMIT 20').fetchall(); conn.close()
-    txt = '?? *Админ-панель*\n\n'
-    for u in users: txt += f'ID: {u[0]} | @{u[1] or "нет"} | Запросов: {u[3]-u[4]}\n'
+    txt = '*Admin panel*\n\n'
+    for u in users: txt += f'ID: {u[0]} | @{u[1] or "none"} | Requests: {u[3]-u[4]}\n'
     await msg.answer(txt, parse_mode='Markdown')
 
 @dp.message(Command('give'))
@@ -127,10 +126,10 @@ async def give(msg: types.Message):
     if len(parts)==3:
         try:
             tid=int(parts[1]); amt=int(parts[2]); add_requests(tid,amt)
-            await msg.answer(f'? Выдано {amt} запросов пользователю {tid}')
-            await bot.send_message(tid, f'?? Админ выдал *{amt}* запросов!', parse_mode='Markdown')
-        except: await msg.answer('? Формат: /give ID количество')
-    else: await msg.answer('? /give ID количество')
+            await msg.answer(f'Added {amt} requests to user {tid}')
+            await bot.send_message(tid, f'Admin gave you *{amt}* requests!', parse_mode='Markdown')
+        except: await msg.answer('Format: /give ID amount')
+    else: await msg.answer('/give ID amount')
 
 async def main():
     init_db()
