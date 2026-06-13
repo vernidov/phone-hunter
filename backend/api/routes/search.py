@@ -1,33 +1,52 @@
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 from modules.aggregator import Aggregator
-from core.database import get_user, create_user, increment_requests, reset_daily_requests
 from typing import Optional
 import sqlite3, os
+
 router = APIRouter()
 aggregator = Aggregator()
 FREE_LIMIT = 5
-class SearchRequest(BaseModel): phone: str
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "users.db")
+
+def get_user(tg):
+    conn = sqlite3.connect(DB_PATH)
+    r = conn.execute('SELECT * FROM users WHERE telegram_id=?', (tg,)).fetchone()
+    conn.close()
+    return r
+
+def use_request(tg):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute('UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?', (tg,))
+    conn.commit()
+    conn.close()
+
+def create_user(tg, un='', fn=''):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute('INSERT OR IGNORE INTO users (telegram_id, username, full_name, last_request_date) VALUES (?,?,?,date(\"now\"))', (tg, un, fn))
+    conn.commit()
+    conn.close()
+
+class SearchRequest(BaseModel):
+    phone: str
+
 @router.post("/search")
 async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header(None)):
     phone = req.phone.strip()
-    if not phone: raise HTTPException(400, "Phone number required")
+    if not phone:
+        raise HTTPException(400, "Phone number required")
+    
     if x_telegram_id:
-        reset_daily_requests()
         user = get_user(x_telegram_id)
-        if not user: create_user(x_telegram_id); user = get_user(x_telegram_id)
-        if not user["is_premium"] and user["requests_today"] >= FREE_LIMIT:
-            raise HTTPException(status_code=429, detail=f"Daily limit ({FREE_LIMIT}) reached. Upgrade to premium.")
-        increment_requests(x_telegram_id)
+        if not user:
+            create_user(x_telegram_id)
+            user = get_user(x_telegram_id)
+        
+        remaining = user[3] - user[4]
+        if remaining <= 0:
+            raise HTTPException(429, detail=f"No requests left. Buy more via bot.")
+        
+        use_request(x_telegram_id)
+    
     result = await aggregator.full_search(phone)
-    return {"query_id":"direct","result":result}
-@router.post("/upgrade")
-async def upgrade(x_telegram_id: str = Header(...)):
-    DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "users.db")
-    conn = sqlite3.connect(DB_PATH); conn.execute("UPDATE users SET is_premium=1 WHERE telegram_id=?",(x_telegram_id,)); conn.commit(); conn.close()
-    return {"status":"ok"}
-@router.get("/profile")
-async def get_profile(x_telegram_id: str = Header(...)):
-    user = get_user(x_telegram_id)
-    if not user: create_user(x_telegram_id); user = get_user(x_telegram_id)
-    return {"telegram_id":user["telegram_id"],"username":user["username"],"requests_today":user["requests_today"],"limit":FREE_LIMIT,"remaining":FREE_LIMIT-user["requests_today"],"is_premium":bool(user["is_premium"]),"created_at":user["created_at"]}
+    return {"query_id": "direct", "result": result}
