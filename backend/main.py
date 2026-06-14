@@ -234,7 +234,7 @@ async def run_bot():
     await dp.start_polling(bot)
 
 def start_fastapi():
-    uvicorn.run(api_app, host="0.0.0.0", port=PORT)
+    uvicorn.run(api_app, host="0.0.0.0", port=PORT, reload=False, workers=1)
 
 if __name__ == "__main__":
     Thread(target=start_fastapi, daemon=True).start()
