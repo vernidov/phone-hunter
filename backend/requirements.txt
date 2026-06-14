@@ -12,9 +12,5 @@ python-multipart
 aiohttp
 beautifulsoup4
 lxml
-sqlalchemy
-redis
-celery
-aiofiles
 requests
 aiogram
