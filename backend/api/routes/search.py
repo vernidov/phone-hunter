@@ -7,19 +7,23 @@ import sqlite3, os
 router = APIRouter()
 aggregator = Aggregator()
 FREE_LIMIT = 5
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "users.db")
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "users.db")
 
 def get_user(tg):
     try:
+        if not os.path.exists(DB_PATH):
+            return None
         conn = sqlite3.connect(DB_PATH)
         r = conn.execute('SELECT * FROM users WHERE telegram_id=?', (tg,)).fetchone()
         conn.close()
         return r
-    except:
+    except Exception as e:
         return None
 
 def use_request(tg):
     try:
+        if not os.path.exists(DB_PATH):
+            return
         conn = sqlite3.connect(DB_PATH)
         conn.execute('UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?', (tg,))
         conn.commit()
@@ -29,8 +33,10 @@ def use_request(tg):
 
 def create_user(tg, un='', fn=''):
     try:
+        if not os.path.exists(DB_PATH):
+            return
         conn = sqlite3.connect(DB_PATH)
-        conn.execute('INSERT OR IGNORE INTO users (telegram_id, username, full_name, last_request_date) VALUES (?,?,?,date(\"now\"))', (tg, un, fn))
+        conn.execute("INSERT OR IGNORE INTO users (telegram_id, username, full_name, requests_total, requests_used, last_request_date) VALUES (?,?,?,5,0,date('now'))", (tg, un, fn))
         conn.commit()
         conn.close()
     except:
@@ -55,7 +61,7 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
             if user:
                 remaining = user[3] - user[4]
                 if remaining <= 0:
-                    raise HTTPException(429, detail="No requests left. Buy more via bot.")
+                    raise HTTPException(429, detail="No requests left")
                 use_request(x_telegram_id)
     except HTTPException:
         raise
