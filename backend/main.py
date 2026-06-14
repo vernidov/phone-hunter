@@ -32,10 +32,8 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
             )
             if resp.status_code == 429:
                 raise HTTPException(429, detail="No requests left today")
-            elif resp.status_code != 200:
-                print(f"Bot returned {resp.status_code}")
         except Exception as e:
-            print(f"Bot check failed: {e}")
+            print(f"Bot error: {e}")
     
     result = await aggregator.full_search(phone)
     return {"query_id": "direct", "result": result}
