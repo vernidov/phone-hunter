@@ -54,7 +54,7 @@ def check_invoice(invoice_id):
     r = requests.get(f'{CRYPTO_API_URL}/getInvoices?invoice_ids={invoice_id}', headers=headers)
     return r.json()
 
-# HTTP-обработчик для проверки баланса (API будет сюда стучаться)
+# HTTP handler for balance check
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/check-balance':
