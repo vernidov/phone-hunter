@@ -1,134 +1,309 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phone Hunter BETA-1.0</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='0' y='0' width='64' height='64' rx='12' ry='12' fill='%23000'/%3E%3Crect x='1.5' y='1.5' width='61' height='61' rx='11' ry='11' fill='none' stroke='%23b30000' stroke-width='1.5'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%23b30000' stroke-width='1.2' stroke-dasharray='6 5' opacity='.5'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cline x1='19' y1='32' x2='45' y2='32' stroke='%23fff' stroke-width='1.5'/%3E%3Cline x1='32' y1='19' x2='32' y2='45' stroke='%23fff' stroke-width='1.5'/%3E%3Cellipse cx='32' cy='32' rx='7' ry='5' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='2.5' fill='%23b30000'/%3E%3C/svg%3E">
     <style>
         :root {
             --bg: #0a0a0a; --text: #c0c0c0; --bright: #e0e0e0;
             --accent: #b30000; --green: #00ff88; --red: #ff3366;
             --yellow: #ffcc00; --dim: #606060;
-            --font: 'Courier New', monospace;
+            --font: 'Courier New', 'Consolas', monospace;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); font-family: var(--font); padding: 20px; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font); overflow-x: hidden; }
+        #bgCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .particles-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+        .particle { position: absolute; width: 2px; height: 2px; background: var(--accent); border-radius: 50%; animation: floatUp 4s linear infinite; opacity: 0; }
+        @keyframes floatUp { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
+
+        #bootScreen { position: fixed; inset: 0; z-index: 100; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.6s ease; }
+        #bootScreen.hidden { opacity: 0; pointer-events: none; }
+        .boot-logo { font-size: 14px; color: var(--accent); letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent); margin-bottom: 30px; animation: neonFlicker 3s infinite; }
+        @keyframes neonFlicker { 0%,19%,21%,23%,25%,54%,56%,100%{opacity:1} 20%,24%,55%{opacity:0.8} }
+        .boot-subtitle { font-size: 9px; color: var(--dim); letter-spacing: 3px; margin-bottom: 40px; }
+        .boot-progress-container { width: 500px; max-width: 80vw; }
+        .boot-progress-bar { width: 100%; height: 3px; background: #111; border-radius: 2px; overflow: hidden; }
+        .boot-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; transition: width 0.3s ease; box-shadow: 0 0 15px rgba(179,0,0,0.5); }
+        .boot-percent { text-align: right; font-size: 10px; color: var(--dim); letter-spacing: 1px; margin-top: 6px; }
+
+        #mainSite { display: none; }
+        #mainSite.visible { display: block; }
+        .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 30px 20px; }
+
         .search-line {
-            display: flex; border: 1px solid #1a1a1a; margin-bottom: 10px;
-            background: rgba(12,12,12,0.9);
+            display: flex; border: 1px solid #1a1a1a; margin-bottom: 8px;
+            background: rgba(12,12,12,0.9); transition: all 0.3s ease; backdrop-filter: blur(10px);
         }
+        .search-line:focus-within { border-color: var(--accent); box-shadow: 0 0 30px rgba(179,0,0,0.2); }
         .search-line .prompt {
             padding: 12px 14px; color: var(--accent); font-weight: bold; font-size: 12px;
-            border-right: 1px solid #1a1a1a;
+            border-right: 1px solid #1a1a1a; text-shadow: 0 0 10px var(--accent);
         }
         .search-line input {
             flex: 1; padding: 12px 14px; background: transparent; border: none;
-            color: var(--bright); font-family: var(--font); font-size: 13px; outline: none;
+            color: var(--bright); font-family: var(--font); font-size: 13px; outline: none; letter-spacing: 1px;
         }
         .search-line input::placeholder { color: #2a2a2a; }
         .search-line button {
             padding: 12px 18px; background: transparent; border: none; border-left: 1px solid #1a1a1a;
             color: var(--accent); font-family: var(--font); font-size: 11px; cursor: pointer;
-            letter-spacing: 2px; text-transform: uppercase;
+            letter-spacing: 2px; text-transform: uppercase; transition: 0.3s; position: relative; overflow: hidden;
         }
         .search-line button:hover { background: rgba(179,0,0,0.1); color: #fff; }
         .search-line button:disabled { color: #333; cursor: not-allowed; }
 
+        .main-row { display: flex; gap: 8px; height: 400px; }
         .output {
-            background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
+            flex: 1; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
             padding: 14px 16px; font-size: 10px; line-height: 1.7; color: var(--dim);
-            white-space: pre-wrap; word-break: break-all; min-height: 300px;
+            white-space: pre-wrap; word-break: break-all; overflow-y: auto; backdrop-filter: blur(10px);
         }
-        .output .h { color: var(--accent); font-weight: bold; }
-        .output .s { color: var(--bright); }
+        .output .h { color: var(--accent); font-weight: bold; } .output .s { color: var(--bright); }
         .output .ok { color: var(--green); } .output .warn { color: var(--yellow); }
         .output .err { color: var(--red); } .output .c { color: #333; }
         .output .loc { color: #fff; font-weight: bold; }
+
+        .graph-panel {
+            width: 280px; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
+            display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(10px);
+        }
+        .graph-header { padding: 10px 14px; border-bottom: 1px solid #1a1a1a; font-size: 9px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; }
+        .graph-body { flex: 1; display: flex; align-items: center; justify-content: center; }
+        .graph-svg { width: 100%; height: 100%; }
+        .g-node { cursor: pointer; transition: all 0.3s; }
+        .g-node:hover rect { filter: brightness(1.6); }
+        .g-node:hover text { fill: #fff !important; }
+
+        .status-line { display: flex; justify-content: space-between; margin-top: 8px; font-size: 8px; color: #333; letter-spacing: 1px; }
+        .status-line .on { color: var(--green); animation: statusPulse 1.5s infinite; }
+        .status-line .off { color: var(--red); }
+        @keyframes statusPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+
+        @media (max-width:800px) {
+            .main-row { flex-direction: column; height: auto; }
+            .graph-panel { width: 100%; height: 250px; }
+        }
     </style>
 </head>
 <body>
-    <div class="search-line">
-        <span class="prompt">$</span>
-        <input type="text" id="phoneInput" placeholder="+79001234567" autofocus spellcheck="false">
-        <button id="searchBtn" onclick="doSearch()">Execute</button>
-        <button onclick="clearAll()" style="border-left:1px solid #1a1a1a;color:var(--dim);">Clear</button>
-    </div>
-    <div class="output" id="output">
-        <span class="c"># Phone Hunter BETA-1.0</span>
-        <span class="c"># Created by VERNIDOV</span>
-        <span class="c"># READY.</span>
-    </div>
+<canvas id="bgCanvas"></canvas>
+<div class="particles-overlay" id="particlesOverlay"></div>
 
-    <script>
-        const API = 'https://phone-hunter1.onrender.com/api/v1';
-        let cr = null;
+<div id="bootScreen">
+    <div class="boot-logo">PHONE HUNTER BETA-1.0</div>
+    <div class="boot-subtitle">SYSTEM INITIALIZATION</div>
+    <div class="boot-progress-container">
+        <div class="boot-progress-bar"><div class="boot-progress-fill" id="bootFill"></div></div>
+        <div class="boot-percent" id="bootPercent">0%</div>
+    </div>
+</div>
 
-        function getTelegramId() {
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-                return window.Telegram.WebApp.initDataUnsafe.user.id;
-            }
-            return null;
+<div id="mainSite">
+    <div class="container">
+        <div class="search-line">
+            <span class="prompt">$</span>
+            <input type="text" id="phoneInput" placeholder="search --phone +79001234567" autofocus spellcheck="false">
+            <button id="searchBtn" onclick="doSearch()">Execute</button>
+            <button onclick="clearAll()" style="border-left:1px solid #1a1a1a;color:var(--dim);">Clear</button>
+        </div>
+
+        <div class="main-row">
+            <div class="output" id="output">
+                <span class="c"># Phone Hunter BETA-1.0</span>
+                <span class="c"># Created by VERNIDOV</span>
+                <span class="c"># READY.</span>
+            </div>
+            <div class="graph-panel">
+                <div class="graph-header">[ GRAPH ]</div>
+                <div class="graph-body">
+                    <svg class="graph-svg" id="graphSvg" viewBox="0 0 260 400">
+                        <text x="130" y="200" text-anchor="middle" fill="#333" font-size="9" font-family="monospace">No data</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-line">
+            <span id="statusText">? <span class="off">OFFLINE</span></span>
+            <span>phone-hunter1.onrender.com</span>
+            <span id="queryCount">0 queries</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    // BOOT
+    const fill = document.getElementById('bootFill');
+    const percent = document.getElementById('bootPercent');
+    const steps = [10, 25, 40, 55, 70, 85, 95, 100];
+    let si = 0;
+    function nb() {
+        if (si >= steps.length) {
+            setTimeout(() => {
+                document.getElementById('bootScreen').classList.add('hidden');
+                document.getElementById('mainSite').classList.add('visible');
+            }, 400);
+            return;
         }
+        fill.style.width = steps[si] + '%';
+        percent.textContent = steps[si] + '%';
+        si++;
+        setTimeout(nb, 350 + Math.random() * 500);
+    }
+    setTimeout(nb, 500);
 
-        async function doSearch() {
-            const raw = document.getElementById('phoneInput').value.trim();
-            if(!raw) return;
-            const btn = document.getElementById('searchBtn'), out = document.getElementById('output');
-            
-            const tg = getTelegramId();
-            if (!tg) {
-                out.innerHTML = '<span class="err">[!] Please open this Mini App from Telegram</span>';
+    // PARTICLES
+    const pc = document.getElementById('particlesOverlay');
+    function cp() {
+        const p = document.createElement('div'); p.className = 'particle';
+        p.style.left = Math.random()*100+'%';
+        p.style.animationDuration = (3+Math.random()*5)+'s';
+        p.style.animationDelay = Math.random()*3+'s';
+        pc.appendChild(p); setTimeout(() => p.remove(), 8000);
+    }
+    setInterval(cp, 200);
+    for (let i=0;i<30;i++) setTimeout(cp, i*100);
+
+    // 3D
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bgCanvas'), alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const pg = new THREE.BufferGeometry(); const pa = new Float32Array(800*3);
+    for (let i=0;i<800*3;i++) pa[i] = (Math.random()-0.5)*20;
+    pg.setAttribute('position', new THREE.BufferAttribute(pa, 3));
+    const pm = new THREE.Points(pg, new THREE.PointsMaterial({ size:0.03, color:0xb30000, transparent:true, opacity:0.6, blending:THREE.AdditiveBlending }));
+    scene.add(pm);
+    const sg = new THREE.SphereGeometry(4,24,24); const sm = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ color:0xb30000, wireframe:true, transparent:true, opacity:0.08 }));
+    scene.add(sm);
+    const tg = new THREE.TorusGeometry(5,0.15,16,60); const tm = new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ color:0xb30000, wireframe:true, transparent:true, opacity:0.05 }));
+    tm.rotation.x = Math.PI/3; scene.add(tm);
+    camera.position.z = 8;
+    function animate() {
+        requestAnimationFrame(animate);
+        pm.rotation.y += 0.0003; pm.rotation.x += 0.0001;
+        sm.rotation.y += 0.002; sm.rotation.x += 0.001;
+        tm.rotation.z += 0.003; tm.rotation.y += 0.001;
+        renderer.render(scene, camera);
+    }
+    animate();
+    window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+    const API = 'https://phone-hunter1.onrender.com/api/v1';
+    let qc = +(localStorage.getItem('hqc')||'0');
+    let cr = null;
+    const se = document.getElementById('statusText'), ce = document.getElementById('queryCount');
+    ce.textContent = qc+' queries';
+    async function cs() {
+        try { const r = await fetch('https://phone-hunter1.onrender.com/'); se.innerHTML = r.ok ? '? <span class="on">ONLINE</span>' : '? <span class="off">ERROR</span>'; }
+        catch(e) { se.innerHTML = '? <span class="off">OFFLINE</span>'; }
+    }
+    cs(); setInterval(cs, 10000);
+    document.getElementById('phoneInput').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+
+    function dg(phone, country, region, city, operator) {
+        const svg = document.getElementById('graphSvg');
+        const sp = phone.length>12 ? phone.slice(0,9)+'...' : phone;
+        const an = [
+            { text: sp, color: '#00ff88' }, { text: country||null, color: '#b30000' },
+            { text: region||null, color: '#ffcc00' }, { text: city||null, color: '#fff' },
+            { text: operator||null, color: '#ddd' },
+        ];
+        const nodes = an.filter(n => n.text);
+        if(!nodes.length) { svg.innerHTML='<text x="130" y="200" text-anchor="middle" fill="#333" font-size="9" font-family="monospace">No data</text>'; return; }
+        const spacing = 380/(nodes.length+1), startY = 50;
+        let s = '';
+        for(let i=0;i<nodes.length-1;i++) {
+            const y1=startY+i*spacing+14, y2=startY+(i+1)*spacing-14;
+            s+=<line x1="130" y1="" x2="130" y2="" stroke="#333" stroke-width="1"/>;
+            const my=(y1+y2)/2; s+=<polygon points="127, 133, 127," fill="#444"/>;
+        }
+        for(let i=0;i<nodes.length;i++) {
+            const y=startY+i*spacing;
+            s+=<g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','');">;
+            s+=<rect x="60" y="" width="140" height="24" rx="4" fill="#0a0a0a" stroke="" stroke-width="1.5"/>;
+            s+=<text x="130" y="" text-anchor="middle" fill="" font-size="9" font-family="Courier New,monospace"></text></g>;
+        }
+        svg.innerHTML = s;
+    }
+
+    function getTelegramId() {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            return window.Telegram.WebApp.initDataUnsafe.user.id;
+        }
+        return null;
+    }
+
+    async function doSearch() {
+        const raw = document.getElementById('phoneInput').value.trim();
+        if(!raw) return;
+        const btn = document.getElementById('searchBtn'), out = document.getElementById('output');
+        
+        const tg = getTelegramId();
+        if (!tg) {
+            out.innerHTML = '<span class="err">[!] Please open this Mini App from Telegram</span>';
+            return;
+        }
+        
+        btn.disabled = true; btn.textContent = '...'; out.innerHTML = '<span class="c">[~] Scanning...</span>';
+        const headers = { 'Content-Type': 'application/json', 'X-Telegram-ID': String(tg) };
+        
+        try {
+            const resp = await fetch(API+'/search', { method:'POST', headers, body:JSON.stringify({phone:raw}) });
+            if (resp.status === 429) {
+                out.innerHTML = '<span class="err">[!] No requests left today. Come back tomorrow or buy more.</span><br><br><a href="https://t.me/phone_hunter_vernidov_bot" target="_blank"><button style="padding:10px 20px;margin-top:10px;background:#b30000;color:#fff;border:none;cursor:pointer;">Buy requests</button></a>';
+                btn.disabled = false; btn.textContent = 'Execute';
                 return;
             }
-            
-            btn.disabled = true; btn.textContent = '...'; out.innerHTML = '<span class="c">[~] Scanning...</span>';
-            const headers = { 'Content-Type': 'application/json', 'X-Telegram-ID': String(tg) };
-            
-            try {
-                const resp = await fetch(API+'/search', { method:'POST', headers, body:JSON.stringify({phone:raw}) });
-                if (resp.status === 429) {
-                    out.innerHTML = '<span class="err">[!] No requests left today. Come back tomorrow or buy more.</span><br><br><a href="https://t.me/phone_hunter_vernidov_bot" target="_blank"><button style="padding:10px 20px;margin-top:10px;background:#b30000;color:#fff;border:none;cursor:pointer;">Buy requests</button></a>';
-                    btn.disabled = false; btn.textContent = 'Execute';
-                    return;
-                }
-                const data = await resp.json(); cr = data; const r = data.result;
-                const city = r.hlr.city||r.geo.city||'', region = r.hlr.region||r.geo.region_name||'';
-                const area = r.hlr.area||'', country = r.validation.country||r.hlr.country||'';
-                const operator = r.validation.operator||r.hlr.provider||'';
-                let log = [];
-                log.push(<span class="h">=== MAIN ===</span>);
-                log.push(<span class="s">Phone:</span>    );
-                log.push(<span class="s">Operator:</span> <span class="loc"></span>);
-                log.push(<span class="s">Country:</span>  );
-                log.push(''); log.push(<span class="h">=== LOCATION ===</span>);
-                if(city) log.push(<span class="s">City:</span>     <span class="loc"></span>);
-                if(region) log.push(<span class="s">Region:</span>   <span class="loc"></span>);
-                if(area) log.push(<span class="s">District:</span>  <span class="loc"></span>);
-                log.push(''); const risk=r.risk_score;
-                log.push(<span class="h">=== RISK ===</span>);
-                log.push(<span class="s">Score:</span>    <span class="">/100</span>);
-                log.push(''); log.push(<span class="h">=== MESSENGERS ===</span>);
-                for(const[k,v] of Object.entries(r.messengers)) log.push(  : );
-                log.push(''); log.push(<span class="h">=== LEAKS ===</span>);
-                if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(  <span class="warn">?</span> ); }
-                else log.push(  <span class="ok">? CLEAN</span>);
-                log.push(''); log.push(<span class="h">=== FRAUD ===</span>);
-                if(r.fraud.has_complaints) log.push(  <span class="err">?</span> );
-                else log.push(  <span class="ok">? CLEAN</span>);
-                log.push(''); log.push(<span class="h">=== LINE ===</span>);
-                log.push(  );
-                log.push(''); log.push(<span class="h">=== PORT ===</span>);
-                log.push(  );
-                out.innerHTML = log.join('\n');
-            } catch(e) { out.innerHTML = '<span class="err">[!] CONNECTION REFUSED</span>'; }
-            btn.disabled = false; btn.textContent = 'Execute';
-        }
+            const data = await resp.json(); cr = data; const r = data.result;
+            const city = r.hlr.city||r.geo.city||'', region = r.hlr.region||r.geo.region_name||'';
+            const area = r.hlr.area||'', country = r.validation.country||r.hlr.country||'';
+            const operator = r.validation.operator||r.hlr.provider||'';
+            dg(r.query.normalized, country, region, city, operator);
+            let log = [];
+            log.push(<span class="h">=== MAIN ===</span>);
+            log.push(<span class="s">Phone:</span>    );
+            log.push(<span class="s">Operator:</span> <span class="loc"></span>);
+            log.push(<span class="s">Country:</span>  );
+            log.push(''); log.push(<span class="h">=== LOCATION ===</span>);
+            if(city) log.push(<span class="s">City:</span>     <span class="loc"></span>);
+            if(region) log.push(<span class="s">Region:</span>   <span class="loc"></span>);
+            if(area) log.push(<span class="s">District:</span>  <span class="loc"></span>);
+            log.push(''); const risk=r.risk_score;
+            log.push(<span class="h">=== RISK ===</span>);
+            log.push(<span class="s">Score:</span>    <span class="">/100</span>);
+            log.push(''); log.push(<span class="h">=== MESSENGERS ===</span>);
+            for(const[k,v] of Object.entries(r.messengers)) log.push(  : );
+            log.push(''); log.push(<span class="h">=== LEAKS ===</span>);
+            if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(  <span class="warn">?</span> ); }
+            else log.push(  <span class="ok">? CLEAN</span>);
+            log.push(''); log.push(<span class="h">=== FRAUD ===</span>);
+            if(r.fraud.has_complaints) log.push(  <span class="err">?</span> );
+            else log.push(  <span class="ok">? CLEAN</span>);
+            log.push(''); log.push(<span class="h">=== LINE ===</span>);
+            log.push(  );
+            log.push(''); log.push(<span class="h">=== PORT ===</span>);
+            log.push(  );
+            out.innerHTML = log.join('\n');
+            qc++; localStorage.setItem('hqc', qc); ce.textContent = qc+' queries';
+        } catch(e) { out.innerHTML = '<span class="err">[!] CONNECTION REFUSED</span>'; }
+        btn.disabled = false; btn.textContent = 'Execute';
+    }
 
-        function clearAll() {
-            document.getElementById('phoneInput').value = '';
-            document.getElementById('output').innerHTML = '<span class="c"># Phone Hunter BETA-1.0</span>\n<span class="c"># READY.</span>';
-            cr = null; document.getElementById('phoneInput').focus();
-        }
-    </script>
+    function clearAll() {
+        document.getElementById('phoneInput').value = '';
+        document.getElementById('output').innerHTML = '<span class="c"># Phone Hunter BETA-1.0</span>\n<span class="c"># READY.</span>';
+        document.getElementById('graphSvg').innerHTML = '<text x="130" y="200" text-anchor="middle" fill="#333" font-size="9" font-family="monospace">No data</text>';
+        cr = null; document.getElementById('phoneInput').focus();
+    }
+</script>
 </body>
 </html>
