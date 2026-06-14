@@ -149,7 +149,7 @@
 
         <div class="status-line">
             <span id="statusText">● <span class="off">OFFLINE</span></span>
-            <span>phone-hunter1.onrender.com</span>
+            <span>phone-hunter.onrender.com</span>
             <span id="queryCount">0 queries</span>
         </div>
     </div>
@@ -208,7 +208,7 @@
     })();
 
     // ===== ОСНОВНАЯ ЛОГИКА =====
-    const API = 'https://phone-hunter1.onrender.com/api/v1';
+    const API = 'https://phone-hunter.onrender.com/api/v1';
     let cr = null;
     const se = document.getElementById('statusText'), ce = document.getElementById('queryCount');
     let qc = +(localStorage.getItem('hqc')||'0');
@@ -216,7 +216,7 @@
 
     async function checkStatus() {
         try {
-            const r = await fetch('https://phone-hunter1.onrender.com/');
+            const r = await fetch('https://phone-hunter.onrender.com/');
             se.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>';
         } catch(e) {
             se.innerHTML = '● <span class="off">OFFLINE</span>';
