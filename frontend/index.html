@@ -15,7 +15,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: var(--bg); color: var(--text); font-family: var(--font); overflow-x: hidden; }
         #matrixCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-
         #bootScreen {
             position: fixed; inset: 0; z-index: 100; background: #050505;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -31,88 +30,43 @@
         .boot-subtitle { font-size: 9px; color: var(--dim); letter-spacing: 3px; margin-bottom: 40px; }
         .boot-progress-container { width: 500px; max-width: 80vw; }
         .boot-progress-bar { width: 100%; height: 3px; background: #111; border-radius: 2px; overflow: hidden; }
-        .boot-progress-fill {
-            height: 100%; width: 0%;
-            background: linear-gradient(90deg, var(--accent), var(--green));
-            border-radius: 2px; transition: width 0.3s ease;
-            box-shadow: 0 0 15px rgba(179,0,0,0.5);
-        }
+        .boot-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; transition: width 0.3s ease; box-shadow: 0 0 15px rgba(179,0,0,0.5); }
         .boot-percent { text-align: right; font-size: 10px; color: var(--dim); letter-spacing: 1px; margin-top: 6px; }
-
         #mainSite { display: none; }
         #mainSite.visible { display: block; }
         .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 30px 20px; }
-
-        .search-line {
-            display: flex; border: 1px solid #1a1a1a; margin-bottom: 8px;
-            background: rgba(12,12,12,0.9); backdrop-filter: blur(10px);
-            transition: border-color 0.3s ease;
-        }
+        .search-line { display: flex; border: 1px solid #1a1a1a; margin-bottom: 8px; background: rgba(12,12,12,0.9); backdrop-filter: blur(10px); transition: border-color 0.3s ease; }
         .search-line:focus-within { border-color: var(--accent); box-shadow: 0 0 30px rgba(179,0,0,0.2); }
-        .search-line .prompt {
-            padding: 12px 14px; color: var(--accent); font-weight: bold; font-size: 12px;
-            border-right: 1px solid #1a1a1a; text-shadow: 0 0 10px var(--accent);
-        }
-        .search-line input {
-            flex: 1; padding: 12px 14px; background: transparent; border: none;
-            color: var(--bright); font-family: var(--font); font-size: 13px; outline: none; letter-spacing: 1px;
-        }
+        .search-line .prompt { padding: 12px 14px; color: var(--accent); font-weight: bold; font-size: 12px; border-right: 1px solid #1a1a1a; text-shadow: 0 0 10px var(--accent); }
+        .search-line input { flex: 1; padding: 12px 14px; background: transparent; border: none; color: var(--bright); font-family: var(--font); font-size: 13px; outline: none; letter-spacing: 1px; }
         .search-line input::placeholder { color: #2a2a2a; }
-        .search-line button {
-            padding: 12px 18px; background: transparent; border: none; border-left: 1px solid #1a1a1a;
-            color: var(--accent); font-family: var(--font); font-size: 11px; cursor: pointer;
-            letter-spacing: 2px; text-transform: uppercase; transition: 0.3s;
-        }
+        .search-line button { padding: 12px 18px; background: transparent; border: none; border-left: 1px solid #1a1a1a; color: var(--accent); font-family: var(--font); font-size: 11px; cursor: pointer; letter-spacing: 2px; text-transform: uppercase; transition: 0.3s; }
         .search-line button:hover { background: rgba(179,0,0,0.1); color: #fff; }
         .search-line button:disabled { color: #333; cursor: not-allowed; }
-
         .main-row { display: flex; gap: 8px; height: 400px; }
-        .output {
-            flex: 1; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
-            padding: 14px 16px; font-size: 10px; line-height: 1.7; color: var(--dim);
-            white-space: pre-wrap; word-break: break-all; overflow-y: auto;
-            backdrop-filter: blur(10px);
-        }
+        .output { flex: 1; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a; padding: 14px 16px; font-size: 10px; line-height: 1.7; color: var(--dim); white-space: pre-wrap; word-break: break-all; overflow-y: auto; backdrop-filter: blur(10px); }
         .output .h { color: var(--accent); font-weight: bold; } .output .s { color: var(--bright); }
         .output .ok { color: var(--green); } .output .warn { color: var(--yellow); }
         .output .err { color: var(--red); } .output .c { color: #333; }
         .output .loc { color: #fff; font-weight: bold; }
-
-        .graph-panel {
-            width: 280px; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
-            display: flex; flex-direction: column; overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-        .graph-header {
-            padding: 10px 14px; border-bottom: 1px solid #1a1a1a;
-            font-size: 9px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
-        }
+        .graph-panel { width: 280px; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(10px); }
+        .graph-header { padding: 10px 14px; border-bottom: 1px solid #1a1a1a; font-size: 9px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; }
         .graph-body { flex: 1; display: flex; align-items: center; justify-content: center; }
         .graph-svg { width: 100%; height: 100%; }
         .g-node { cursor: pointer; transition: all 0.3s; }
         .g-node:hover rect { filter: brightness(1.6); }
         .g-node:hover text { fill: #fff !important; }
-
-        .status-line {
-            display: flex; justify-content: space-between; margin-top: 8px;
-            font-size: 8px; color: #333; letter-spacing: 1px;
-        }
+        .status-line { display: flex; justify-content: space-between; margin-top: 8px; font-size: 8px; color: #333; letter-spacing: 1px; }
         .status-line .on { color: var(--green); animation: statusPulse 1.5s infinite; }
         .status-line .off { color: var(--red); }
         @keyframes statusPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
         ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
-
-        @media (max-width:800px) {
-            .main-row { flex-direction: column; height: auto; }
-            .graph-panel { width: 100%; height: 250px; }
-        }
+        @media (max-width:800px) { .main-row { flex-direction: column; height: auto; } .graph-panel { width: 100%; height: 250px; } }
     </style>
 </head>
 <body>
 <canvas id="matrixCanvas"></canvas>
-
 <div id="bootScreen">
     <div class="boot-logo">PHONE HUNTER BETA-1.0</div>
     <div class="boot-subtitle">SYSTEM INITIALIZATION</div>
@@ -121,7 +75,6 @@
         <div class="boot-percent" id="bootPercent">0%</div>
     </div>
 </div>
-
 <div id="mainSite">
     <div class="container">
         <div class="search-line">
@@ -130,7 +83,6 @@
             <button id="searchBtn" onclick="doSearch()">Execute</button>
             <button onclick="clearAll()" style="border-left:1px solid #1a1a1a;color:var(--dim);">Clear</button>
         </div>
-
         <div class="main-row">
             <div class="output" id="output">
                 <span class="c"># Phone Hunter BETA-1.0</span>
@@ -146,17 +98,15 @@
                 </div>
             </div>
         </div>
-
         <div class="status-line">
-            <span id="statusText">● <span class="off">OFFLINE</span></span>
+            <span id="statusText">? <span class="off">OFFLINE</span></span>
             <span>phone-hunter.onrender.com</span>
             <span id="queryCount">0 queries</span>
         </div>
     </div>
 </div>
-
 <script>
-    // ===== МАТРИЦА =====
+    // MATRIX
     (function() {
         const canvas = document.getElementById('matrixCanvas');
         const ctx = canvas.getContext('2d');
@@ -184,8 +134,7 @@
             canvas.height = window.innerHeight;
         });
     })();
-
-    // ===== ЭКРАН ЗАГРУЗКИ =====
+    // BOOT
     (function() {
         const fill = document.getElementById('bootFill');
         const percent = document.getElementById('bootPercent');
@@ -206,25 +155,22 @@
         }
         setTimeout(nb, 500);
     })();
-
-    // ===== ОСНОВНАЯ ЛОГИКА =====
     const API = 'https://phone-hunter.onrender.com/api/v1';
+    let qc = +(localStorage.getItem('hqc')||'0');
     let cr = null;
     const se = document.getElementById('statusText'), ce = document.getElementById('queryCount');
-    let qc = +(localStorage.getItem('hqc')||'0');
     ce.textContent = qc+' queries';
-
     async function checkStatus() {
         try {
             const r = await fetch('https://phone-hunter.onrender.com/');
-            se.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>';
+            se.innerHTML = r.ok ? '? <span class="on">ONLINE</span>' : '? <span class="off">ERROR</span>';
         } catch(e) {
-            se.innerHTML = '● <span class="off">OFFLINE</span>';
+            se.innerHTML = '? <span class="off">OFFLINE</span>';
         }
     }
     checkStatus();
     setInterval(checkStatus, 10000);
-
+    document.getElementById('phoneInput').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
     function drawGraph(phone, country, region, city, operator) {
         const svg = document.getElementById('graphSvg');
         const sp = phone.length>12 ? phone.slice(0,9)+'...' : phone;
@@ -245,22 +191,20 @@
         for(let i=0; i<nodes.length-1; i++) {
             const y1 = startY + i*spacing + 14;
             const y2 = startY + (i+1)*spacing - 14;
-            s += `<line x1="130" y1="${y1}" x2="130" y2="${y2}" stroke="#333" stroke-width="1"/>`;
+            s += <line x1="130" y1="" x2="130" y2="" stroke="#333" stroke-width="1"/>;
             const my = (y1+y2)/2;
-            s += `<polygon points="127,${my-4} 133,${my} 127,${my+4}" fill="#444"/>`;
+            s += <polygon points="127, 133, 127," fill="#444"/>;
         }
         for(let i=0; i<nodes.length; i++) {
             const y = startY + i*spacing;
-            s += `<g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','${nodes[i].color}');">`;
-            s += `<rect x="60" y="${y-12}" width="140" height="24" rx="4" fill="#0a0a0a" stroke="${nodes[i].color}" stroke-width="1.5"/>`;
-            s += `<text x="130" y="${y+4}" text-anchor="middle" fill="${nodes[i].color}" font-size="9" font-family="Courier New,monospace">${nodes[i].text}</text></g>`;
+            s += <g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','');">;
+            s += <rect x="60" y="" width="140" height="24" rx="4" fill="#0a0a0a" stroke="" stroke-width="1.5"/>;
+            s += <text x="130" y="" text-anchor="middle" fill="" font-size="9" font-family="Courier New,monospace"></text></g>;
         }
         svg.innerHTML = s;
     }
-
-    // ВРЕМЕННО: используем тестовый Telegram ID, чтобы кнопки работали
+    // REAL TELEGRAM ID (no stub)
     function getTelegramId() {
-        // Попробуем получить реальный ID, если доступен Telegram
         if (window.Telegram && window.Telegram.WebApp) {
             const tg = window.Telegram.WebApp;
             if (typeof tg.ready === 'function') tg.ready();
@@ -278,21 +222,19 @@
                 } catch(e) {}
             }
         }
-        // Заглушка для теста (потом уберёшь)
-        return '7753936402';
+        return null;
     }
-
     async function doSearch() {
         const raw = document.getElementById('phoneInput').value.trim();
         if(!raw) return;
         const btn = document.getElementById('searchBtn'), out = document.getElementById('output');
-
+        const tg = getTelegramId();
+        if (!tg) {
+            out.innerHTML = '<span class="err">[!] Unable to get Telegram ID. Please open this Mini App from Telegram\'s menu button.</span>';
+            return;
+        }
         btn.disabled = true; btn.textContent = '...'; out.innerHTML = '<span class="c">[~] Scanning...</span>';
-
-        const tgId = getTelegramId();
-        const headers = { 'Content-Type': 'application/json' };
-        if (tgId) headers['X-Telegram-ID'] = String(tgId);
-
+        const headers = { 'Content-Type': 'application/json', 'X-Telegram-ID': String(tg) };
         try {
             const resp = await fetch(API+'/search', { method:'POST', headers, body:JSON.stringify({phone:raw}) });
             if (resp.status === 429) {
@@ -305,43 +247,47 @@
             const area = r.hlr.area||'', country = r.validation.country||r.hlr.country||'';
             const operator = r.validation.operator||r.hlr.provider||'';
             drawGraph(r.query.normalized, country, region, city, operator);
-
             let log = [];
-            log.push(`<span class="h">═══ MAIN ═══</span>`);
-            log.push(`<span class="s">Phone:</span>    ${r.query.normalized}`);
-            log.push(`<span class="s">Operator:</span> <span class="loc">${operator||'—'}</span>`);
-            log.push(`<span class="s">Country:</span>  ${country||'—'}`);
-            log.push(''); log.push(`<span class="h">═══ LOCATION ═══</span>`);
-            if(city) log.push(`<span class="s">City:</span>     <span class="loc">${city}</span>`);
-            if(region) log.push(`<span class="s">Region:</span>   <span class="loc">${region}</span>`);
-            if(area) log.push(`<span class="s">District:</span>  <span class="loc">${area}</span>`);
-            log.push(''); const risk=r.risk_score;
-            log.push(`<span class="h">═══ RISK ═══</span>`);
-            log.push(`<span class="s">Score:</span>    <span class="${risk>70?'err':risk>30?'warn':'ok'}">${risk}/100</span>`);
-            log.push(''); log.push(`<span class="h">═══ MESSENGERS ═══</span>`);
-            for(const[k,v] of Object.entries(r.messengers)) log.push(`  ${k}: ${v?'<span class="ok">✓</span>':'<span class="err">✗</span>'}`);
-            log.push(''); log.push(`<span class="h">═══ LEAKS ═══</span>`);
-            if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(`  <span class="warn">⚠</span> ${l.name}`); }
-            else log.push(`  <span class="ok">✓ CLEAN</span>`);
-            log.push(''); log.push(`<span class="h">═══ FRAUD ═══</span>`);
-            if(r.fraud.has_complaints) log.push(`  <span class="err">⚠</span> ${r.fraud.tags.join(', ')}`);
-            else log.push(`  <span class="ok">✓ CLEAN</span>`);
-            log.push(''); log.push(`<span class="h">═══ LINE ═══</span>`);
-            log.push(`  ${r.line_type.is_business?'<span class="warn">BUSINESS</span>':r.line_type.is_mass_activation?'<span class="warn">MASS ACTIVATION</span>':'<span class="ok">PERSONAL</span>'}`);
-            log.push(''); log.push(`<span class="h">═══ PORT ═══</span>`);
-            log.push(`  ${r.port.ported?'<span class="warn">PORTED</span>':'<span class="ok">NATIVE</span>'}`);
+            log.push(<span class="h">=== MAIN ===</span>);
+            log.push(<span class="s">Phone:</span>    );
+            log.push(<span class="s">Operator:</span> <span class="loc"></span>);
+            log.push(<span class="s">Country:</span>  );
+            log.push('');
+            log.push(<span class="h">=== LOCATION ===</span>);
+            if(city) log.push(<span class="s">City:</span>     <span class="loc"></span>);
+            if(region) log.push(<span class="s">Region:</span>   <span class="loc"></span>);
+            if(area) log.push(<span class="s">District:</span>  <span class="loc"></span>);
+            log.push('');
+            const risk=r.risk_score;
+            log.push(<span class="h">=== RISK ===</span>);
+            log.push(<span class="s">Score:</span>    <span class="">/100</span>);
+            log.push('');
+            log.push(<span class="h">=== MESSENGERS ===</span>);
+            for(const[k,v] of Object.entries(r.messengers)) log.push(  : );
+            log.push('');
+            log.push(<span class="h">=== LEAKS ===</span>);
+            if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(  <span class="warn">?</span> ); }
+            else log.push(  <span class="ok">? CLEAN</span>);
+            log.push('');
+            log.push(<span class="h">=== FRAUD ===</span>);
+            if(r.fraud.has_complaints) log.push(  <span class="err">?</span> );
+            else log.push(  <span class="ok">? CLEAN</span>);
+            log.push('');
+            log.push(<span class="h">=== LINE ===</span>);
+            log.push(  );
+            log.push('');
+            log.push(<span class="h">=== PORT ===</span>);
+            log.push(  );
             out.innerHTML = log.join('\n');
             qc++; localStorage.setItem('hqc', qc); ce.textContent = qc+' queries';
         } catch(e) { out.innerHTML = '<span class="err">[!] CONNECTION REFUSED</span>'; }
         btn.disabled = false; btn.textContent = 'Execute';
     }
-
     function clearAll() {
         document.getElementById('phoneInput').value = '';
         document.getElementById('output').innerHTML = '<span class="c"># Phone Hunter BETA-1.0</span>\n<span class="c"># READY.</span>';
         document.getElementById('graphSvg').innerHTML = '<text x="130" y="200" text-anchor="middle" fill="#333" font-size="9" font-family="monospace">No data</text>';
-        cr = null;
-        document.getElementById('phoneInput').focus();
+        cr = null; document.getElementById('phoneInput').focus();
     }
 </script>
 </body>
