@@ -107,15 +107,15 @@ class SearchRequest(BaseModel):
 async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header(None)):
     phone = req.phone.strip()
     if not phone:
-        raise HTTPException(400, "Phone number required")
+        raise HTTPException(status_code=400, detail="Phone number required")
 
     if not x_telegram_id:
-        raise HTTPException(401, detail="X-Telegram-ID header is required")
+        raise HTTPException(status_code=401, detail="X-Telegram-ID header is required")
 
     try:
         tg_id = int(x_telegram_id)
     except ValueError:
-        raise HTTPException(400, detail="Invalid Telegram ID")
+        raise HTTPException(status_code=400, detail="Invalid Telegram ID")
 
     reset_daily(tg_id)
     user = get_user(tg_id)
@@ -125,11 +125,11 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
         user = get_user(tg_id)
 
     if not user:
-        raise HTTPException(500, detail="Failed to create user")
+        raise HTTPException(status_code=500, detail="Failed to create user")
 
     remaining = user[3] - user[4]
     if remaining <= 0:
-        raise HTTPException(429, detail="No requests left today")
+        raise HTTPException(status_code=429, detail="No requests left today")
 
     use_request(tg_id)
 
@@ -143,11 +143,11 @@ api_app.include_router(search_router, prefix="/api/v1", tags=["search"])
 async def check_balance(data: dict):
     tg_id = data.get("telegram_id")
     if not tg_id:
-        raise HTTPException(400, "telegram_id required")
+        raise HTTPException(status_code=400, detail="telegram_id required")
     try:
         tg_id = int(tg_id)
     except ValueError:
-        raise HTTPException(400, "Invalid telegram_id")
+        raise HTTPException(status_code=400, detail="Invalid telegram_id")
 
     reset_daily(tg_id)
     user = get_user(tg_id)
@@ -156,9 +156,8 @@ async def check_balance(data: dict):
         user = get_user(tg_id)
 
     if user and user[3] - user[4] > 0:
-        use_request(tg_id)
-        return {"status": "ok", "remaining": user[3] - user[4] - 1}
-    raise HTTPException(429, detail="No requests left today")
+        return {"status": "ok", "remaining": user[3] - user[4]}
+    raise HTTPException(status_code=429, detail="No requests left today")
 
 @api_app.get("/")
 def root():

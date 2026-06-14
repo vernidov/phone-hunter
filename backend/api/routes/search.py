@@ -16,7 +16,7 @@ class SearchRequest(BaseModel):
 async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header(None)):
     phone = req.phone.strip()
     if not phone:
-        raise HTTPException(400, "Phone number required")
+        raise HTTPException(status_code=400, detail="Phone number required")
     
     if x_telegram_id:
         try:
@@ -26,7 +26,7 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
                 timeout=10
             )
             if resp.status_code == 429:
-                raise HTTPException(429, detail="No requests left today")
+                raise HTTPException(status_code=429, detail="No requests left today")
         except HTTPException:
             raise
         except:
