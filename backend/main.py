@@ -29,10 +29,15 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
                 timeout=10
             )
             if resp.status_code == 429:
-                raise HTTPException(429, detail="No requests left today")
+                # Возвращаем человекочитаемое описание
+                raise HTTPException(status_code=429, detail="No requests left. Come back tomorrow or buy more.")
+            elif resp.status_code != 200:
+                # На всякий случай – если бот вернул другую ошибку
+                raise HTTPException(status_code=502, detail="Bot unavailable. Please try again.")
         except HTTPException:
             raise
-        except:
+        except Exception:
+            # Если бот вообще не ответил – не блокируем поиск, но логируем
             pass
     
     result = await aggregator.full_search(phone)
