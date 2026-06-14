@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os, uvicorn, asyncio, sqlite3, requests
 from threading import Thread
-from fastapi import FastAPI, APIRouter, HTTPException, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -9,12 +9,15 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 
+# Абсолютный путь к БД (Фикс 5)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'users.db')
+
 BOT_TOKEN = os.environ['BOT_TOKEN']
 CRYPTO_API = os.environ.get('CRYPTO_API', '')
 WEBAPP_URL = 'https://phone-hunter-front.onrender.com'
 ADMIN_ID = 7753936402
 PORT = int(os.environ.get('PORT', 8000))
-DB_PATH = 'users.db'
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -26,15 +29,31 @@ def init_db():
     conn.commit(); conn.close()
 
 def get_user(tg): conn=sqlite3.connect(DB_PATH); r=conn.execute('SELECT * FROM users WHERE telegram_id=?',(tg,)).fetchone(); conn.close(); return r
-def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT OR IGNORE INTO users (telegram_id,username,full_name,requests_total,requests_used,last_request_date) VALUES (?,?,?,5,0,date(\"now\"))',(tg,un,fn)); conn.commit(); conn.close()
+def create_user(tg, un='', fn=''): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT OR IGNORE INTO users (telegram_id,username,full_name,requests_total,requests_used,last_request_date) VALUES (?,?,?,5,0,date("now"))',(tg,un,fn)); conn.commit(); conn.close()
 def add_requests(tg,n): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE users SET requests_total=requests_total+? WHERE telegram_id=?',(n,tg)); conn.commit(); conn.close()
-def use_request(tg): conn=sqlite3.connect(DB_PATH); conn.execute("UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?", (tg,)); conn.commit(); conn.close()
+def use_request(tg):
+    conn=sqlite3.connect(DB_PATH)
+    cur = conn.execute("UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?", (tg,))
+    print(f"[use_request] tg={tg}, rows_affected={cur.rowcount}")  # Фикс 3: логирование
+    conn.commit(); conn.close()
 def reset_daily(tg):
     conn=sqlite3.connect(DB_PATH)
     conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND (last_request_date IS NULL OR last_request_date != date('now'))", (tg,))
     conn.commit(); conn.close()
 
 PRICES = {"10":{"requests":10,"price":0.99,"name":"10 requests"},"50":{"requests":50,"price":3.99,"name":"50 requests"},"100":{"requests":100,"price":6.99,"name":"100 requests"},"premium":{"requests":9999,"price":9.99,"name":"Unlimited 30 days"}}
+def save_payment(iid,tg,amt,req,cur): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT INTO payments (invoice_id,telegram_id,amount,requests,currency,status) VALUES (?,?,?,?,?,?)',(iid,tg,amt,req,cur,'pending')); conn.commit(); conn.close()
+def mark_paid(iid): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE payments SET status=? WHERE invoice_id=?',('paid',iid)); conn.commit(); conn.close()
+def get_payment(iid): conn=sqlite3.connect(DB_PATH); r=conn.execute('SELECT * FROM payments WHERE invoice_id=?',(iid,)).fetchone(); conn.close(); return r
+def create_invoice(amount, currency='USDT'):
+    headers = {'Crypto-Pay-API-Token': CRYPTO_API}
+    data = {'asset': currency, 'amount': str(amount)}
+    r = requests.post('https://pay.crypt.bot/api/createInvoice', json=data, headers=headers)
+    return r.json()
+def check_invoice(invoice_id):
+    headers = {'Crypto-Pay-API-Token': CRYPTO_API}
+    r = requests.get(f'https://pay.crypt.bot/api/getInvoices?invoice_ids={invoice_id}', headers=headers)
+    return r.json()
 
 api_app = FastAPI(title="Phone Hunter BETA-1.0", version="1.0")
 api_app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -48,17 +67,60 @@ class SearchRequest(BaseModel): phone: str
 async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header(None)):
     phone = req.phone.strip()
     if not phone: raise HTTPException(400, "Phone number required")
-    if x_telegram_id:
-        reset_daily(x_telegram_id)
-        user = get_user(x_telegram_id)
-        if not user: create_user(x_telegram_id); user = get_user(x_telegram_id)
-        if user and user[3] - user[4] <= 0: raise HTTPException(429, detail="No requests left today")
-        use_request(x_telegram_id)
+    
+    # Фикс 2: обязательно требуем Telegram ID
+    if not x_telegram_id:
+        raise HTTPException(401, detail="X-Telegram-ID header is required")
+    
+    # Фикс 1 и 4: приводим к int, обрабатываем ошибку
+    try:
+        tg_id = int(x_telegram_id)
+    except ValueError:
+        raise HTTPException(400, detail="Invalid Telegram ID")
+    
+    reset_daily(tg_id)
+    user = get_user(tg_id)
+    
+    if not user:
+        # Фикс 1: передаём 3 аргумента
+        create_user(tg_id, '', '')
+        user = get_user(tg_id)
+    
+    if not user:
+        raise HTTPException(500, detail="Failed to create user")
+    
+    remaining = user[3] - user[4]
+    if remaining <= 0:
+        raise HTTPException(429, detail="No requests left today")
+    
+    use_request(tg_id)
+    
     aggregator = Aggregator()
     result = await aggregator.full_search(phone)
     return {"query_id":"direct","result":result}
 
 api_app.include_router(search_router, prefix="/api/v1", tags=["search"])
+
+# Фикс 2: эндпоинт /check-balance
+@api_app.post("/check-balance")
+async def check_balance(data: dict):
+    tg_id = data.get("telegram_id")
+    if not tg_id: raise HTTPException(400, "telegram_id required")
+    try:
+        tg_id = int(tg_id)
+    except ValueError:
+        raise HTTPException(400, "Invalid telegram_id")
+    
+    reset_daily(tg_id)
+    user = get_user(tg_id)
+    if not user:
+        create_user(tg_id, '', '')
+        user = get_user(tg_id)
+    
+    if user and user[3] - user[4] > 0:
+        use_request(tg_id)
+        return {"status": "ok", "remaining": user[3] - user[4] - 1}
+    raise HTTPException(429, detail="No requests left today")
 
 @api_app.get("/")
 def root(): return {"status":"active","service":"Phone Hunter BETA-1.0","mode":"cloud"}

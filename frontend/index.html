@@ -1,240 +1,116 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phone Hunter BETA-1.0</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='0' y='0' width='64' height='64' rx='12' ry='12' fill='%23000'/%3E%3Crect x='1.5' y='1.5' width='61' height='61' rx='11' ry='11' fill='none' stroke='%23b30000' stroke-width='1.5'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%23b30000' stroke-width='1.2' stroke-dasharray='6 5' opacity='.5'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cline x1='19' y1='32' x2='45' y2='32' stroke='%23fff' stroke-width='1.5'/%3E%3Cline x1='32' y1='19' x2='32' y2='45' stroke='%23fff' stroke-width='1.5'/%3E%3Cellipse cx='32' cy='32' rx='7' ry='5' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='2.5' fill='%23b30000'/%3E%3C/svg%3E">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', monospace; }
-        body { background: #050505; color: white; overflow-x: hidden; }
-        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        :root {
+            --bg: #0a0a0a; --text: #c0c0c0; --bright: #e0e0e0;
+            --accent: #b30000; --green: #00ff88; --red: #ff3366;
+            --yellow: #ffcc00; --dim: #606060;
+            --font: 'Courier New', 'Consolas', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font); overflow-x: hidden; }
+        #bgCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .particles-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+        .particle { position: absolute; width: 2px; height: 2px; background: var(--accent); border-radius: 50%; animation: floatUp 4s linear infinite; opacity: 0; }
+        @keyframes floatUp { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
 
-        header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 20px 50px; border-bottom: 1px solid rgba(180,0,0,0.2);
-            backdrop-filter: blur(10px);
-        }
-        .logo {
-            font-size: 28px; font-weight: 900; color: #b30000;
-            text-shadow: 0 0 25px #b30000; letter-spacing: 4px;
-        }
-        nav a {
-            color: white; text-decoration: none; margin-left: 25px;
-            transition: 0.3s; text-transform: uppercase; letter-spacing: 2px; font-size: 12px; cursor: pointer;
-        }
-        nav a:hover { color: #b30000; text-shadow: 0 0 15px #b30000; }
+        #bootScreen { position: fixed; inset: 0; z-index: 100; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.6s ease; }
+        #bootScreen.hidden { opacity: 0; pointer-events: none; }
+        .boot-logo { font-size: 14px; color: var(--accent); letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent); margin-bottom: 30px; animation: neonFlicker 3s infinite; }
+        @keyframes neonFlicker { 0%,19%,21%,23%,25%,54%,56%,100%{opacity:1} 20%,24%,55%{opacity:0.8} }
+        .boot-subtitle { font-size: 9px; color: var(--dim); letter-spacing: 3px; margin-bottom: 40px; }
+        .boot-progress-container { width: 500px; max-width: 80vw; }
+        .boot-progress-bar { width: 100%; height: 3px; background: #111; border-radius: 2px; overflow: hidden; }
+        .boot-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; transition: width 0.3s ease; box-shadow: 0 0 15px rgba(179,0,0,0.5); }
+        .boot-percent { text-align: right; font-size: 10px; color: var(--dim); letter-spacing: 1px; margin-top: 6px; }
 
-        .page { display: none; }
-        .page.active { display: block; }
+        #mainSite { display: none; }
+        #mainSite.visible { display: block; }
+        .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 30px 20px; }
 
-        /* HOME PAGE */
-        .hero {
-            min-height: 100vh; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center;
-            padding: 40px; position: relative;
-        }
-        .tag {
-            border: 1px solid rgba(180,0,0,0.4); padding: 10px 22px;
-            border-radius: 999px; margin-bottom: 25px; color: #ff4444;
-            background: rgba(180,0,0,0.08); box-shadow: 0 0 30px rgba(180,0,0,0.3);
-            animation: pulse 3s infinite; font-size: 12px; letter-spacing: 3px;
-        }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-
-        .art-block {
-            color: #b30000; font-size: 4px; line-height: 1.1;
-            text-shadow: 0 0 8px #b30000, 0 0 20px #b30000;
-            margin: 6px 0; white-space: pre;
-        }
-        .art-big {
-            color: #b30000; font-size: 10px; line-height: 1.1;
-            text-shadow: 0 0 10px #b30000, 0 0 30px #b30000;
-            margin: 15px 0; white-space: pre;
-        }
-
-        .buttons { margin-top: 30px; display: flex; gap: 20px; }
-        .btn {
-            padding: 16px 35px; border-radius: 12px; border: none; cursor: pointer;
-            font-size: 14px; font-weight: bold; transition: 0.35s; font-family: 'Courier New', monospace;
-            letter-spacing: 1px;
-        }
-        .primary { background: #b30000; color: white; box-shadow: 0 0 35px rgba(180,0,0,0.6); }
-        .primary:hover { transform: scale(1.08); background: #cc0000; }
-        .secondary { background: transparent; border: 1px solid rgba(180,0,0,0.5); color: white; }
-        .secondary:hover { background: rgba(180,0,0,0.15); }
-        .cards {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px; margin-top: 60px; width: 100%; max-width: 1100px;
-        }
-        .card {
-            background: rgba(255,255,255,0.04); border: 1px solid rgba(180,0,0,0.2);
-            border-radius: 25px; padding: 35px; transition: 0.4s; backdrop-filter: blur(15px);
-            position: relative; overflow: hidden;
-        }
-        .card::before {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(135deg, rgba(180,0,0,0.2), transparent);
-            opacity: 0; transition: 0.4s;
-        }
-        .card:hover::before { opacity: 1; }
-        .card:hover { transform: translateY(-15px); box-shadow: 0 0 40px rgba(180,0,0,0.2); }
-        .card h3 { color: #b30000; font-size: 28px; margin-bottom: 15px; position: relative; z-index: 2; }
-        .card p { color: #aaa; line-height: 1.7; position: relative; z-index: 2; font-size: 13px; }
-
-        /* TOOLS PAGE */
-        .tools-container {
-            min-height: 100vh; display: flex; flex-direction: column;
-            align-items: center; padding: 30px 20px;
-        }
         .search-line {
-            display: flex; border: 1px solid rgba(180,0,0,0.3); margin: 15px 0;
-            background: rgba(180,0,0,0.03); transition: all 0.3s ease;
-            backdrop-filter: blur(10px); max-width: 700px; width: 100%;
+            display: flex; border: 1px solid #1a1a1a; margin-bottom: 8px;
+            background: rgba(12,12,12,0.9); transition: all 0.3s ease; backdrop-filter: blur(10px);
         }
-        .search-line:focus-within { border-color: #b30000; box-shadow: 0 0 30px rgba(180,0,0,0.3); }
+        .search-line:focus-within { border-color: var(--accent); box-shadow: 0 0 30px rgba(179,0,0,0.2); }
         .search-line .prompt {
-            padding: 14px 16px; color: #b30000; font-weight: bold; font-size: 13px;
-            border-right: 1px solid rgba(180,0,0,0.2);
+            padding: 12px 14px; color: var(--accent); font-weight: bold; font-size: 12px;
+            border-right: 1px solid #1a1a1a; text-shadow: 0 0 10px var(--accent);
         }
         .search-line input {
-            flex: 1; padding: 14px 16px; background: transparent; border: none;
-            color: white; font-family: 'Courier New', monospace; font-size: 13px;
-            outline: none; letter-spacing: 1px;
+            flex: 1; padding: 12px 14px; background: transparent; border: none;
+            color: var(--bright); font-family: var(--font); font-size: 13px; outline: none; letter-spacing: 1px;
         }
-        .search-line input::placeholder { color: #333; }
+        .search-line input::placeholder { color: #2a2a2a; }
         .search-line button {
-            padding: 14px 20px; background: transparent; border: none;
-            border-left: 1px solid rgba(180,0,0,0.2); color: #b30000;
-            font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer;
-            letter-spacing: 2px; text-transform: uppercase; transition: 0.3s;
+            padding: 12px 18px; background: transparent; border: none; border-left: 1px solid #1a1a1a;
+            color: var(--accent); font-family: var(--font); font-size: 11px; cursor: pointer;
+            letter-spacing: 2px; text-transform: uppercase; transition: 0.3s; position: relative; overflow: hidden;
         }
-        .search-line button:hover { background: rgba(180,0,0,0.15); }
+        .search-line button:hover { background: rgba(179,0,0,0.1); color: #fff; }
         .search-line button:disabled { color: #333; cursor: not-allowed; }
 
-        .main-row { display: flex; gap: 10px; max-width: 1000px; width: 100%; height: 380px; }
+        .main-row { display: flex; gap: 8px; height: 400px; }
         .output {
-            flex: 1; background: rgba(180,0,0,0.02); border: 1px solid rgba(180,0,0,0.15);
-            padding: 16px 18px; font-size: 11px; line-height: 1.7; color: #888;
-            white-space: pre-wrap; word-break: break-all; overflow-y: auto;
-            backdrop-filter: blur(10px); text-align: left;
+            flex: 1; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
+            padding: 14px 16px; font-size: 10px; line-height: 1.7; color: var(--dim);
+            white-space: pre-wrap; word-break: break-all; overflow-y: auto; backdrop-filter: blur(10px);
         }
-        .output .h { color: #b30000; font-weight: bold; } .output .s { color: #ddd; }
-        .output .ok { color: #00ff88; } .output .warn { color: #ffcc00; }
-        .output .err { color: #ff4444; } .output .c { color: #333; }
+        .output .h { color: var(--accent); font-weight: bold; } .output .s { color: var(--bright); }
+        .output .ok { color: var(--green); } .output .warn { color: var(--yellow); }
+        .output .err { color: var(--red); } .output .c { color: #333; }
         .output .loc { color: #fff; font-weight: bold; }
 
         .graph-panel {
-            width: 280px; background: rgba(180,0,0,0.02); border: 1px solid rgba(180,0,0,0.15);
+            width: 280px; background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
             display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(10px);
         }
-        .graph-header {
-            padding: 10px 14px; border-bottom: 1px solid rgba(180,0,0,0.15);
-            font-size: 9px; letter-spacing: 2px; color: #b30000; text-transform: uppercase;
-        }
+        .graph-header { padding: 10px 14px; border-bottom: 1px solid #1a1a1a; font-size: 9px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; }
         .graph-body { flex: 1; display: flex; align-items: center; justify-content: center; }
         .graph-svg { width: 100%; height: 100%; }
         .g-node { cursor: pointer; transition: all 0.3s; }
         .g-node:hover rect { filter: brightness(1.6); }
         .g-node:hover text { fill: #fff !important; }
 
-        .status-line {
-            display: flex; justify-content: space-between; margin-top: 10px;
-            font-size: 9px; color: #333; letter-spacing: 1px; max-width: 1000px; width: 100%;
-        }
-        .status-line .on { color: #00ff88; animation: statusPulse 1.5s infinite; }
-        .status-line .off { color: #ff4444; }
+        .status-line { display: flex; justify-content: space-between; margin-top: 8px; font-size: 8px; color: #333; letter-spacing: 1px; }
+        .status-line .on { color: var(--green); animation: statusPulse 1.5s infinite; }
+        .status-line .off { color: var(--red); }
         @keyframes statusPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
         ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
 
-        @media (max-width: 800px) {
+        @media (max-width:800px) {
             .main-row { flex-direction: column; height: auto; }
             .graph-panel { width: 100%; height: 250px; }
-            header { flex-direction: column; gap: 10px; }
-            .art-big { font-size: 6px; }
         }
     </style>
 </head>
 <body>
+<canvas id="bgCanvas"></canvas>
+<div class="particles-overlay" id="particlesOverlay"></div>
 
-<canvas id="matrix"></canvas>
-
-<header>
-    <div class="logo">PHONE HUNTER</div>
-    <nav>
-        <a onclick="showPage('home')">Home</a>
-        <a onclick="showPage('tools')">Tools</a>
-        <a href="https://github.com/vernidov/phone-hunter" target="_blank">GitHub</a>
-    </nav>
-</header>
-
-<!-- HOME PAGE -->
-<div class="page active" id="homePage">
-    <section class="hero">
-        <div class="tag">PHONE INTELLIGENCE SYSTEM · BETA-1.0</div>
-
-        <pre class="art-block">
-    ⠀⠀⠀⠀⠀⠀⣿⠲⠤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⣸⡏⠀⠀⠀⠉⠳⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⠀⠀⠉⠲⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-    ⠀⠀⠀⢰⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠲⣄⠀⠀⠀⡰⠋⢙⣿⣦⡀⠀⠀⠀⠀
-    ⠀⠀⠀⠸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣙⣦⣮⣤⡀⣸⣿⣿⣿⣆⠀⠀⠀
-    ⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⠀⣿⢟⣫⠟⠋⠀⠀⠀
-    ⠀⠀⠀⠀⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⣿⣿⣿⣷⣷⣿⡁⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⢸⣿⣿⣧⣿⣿⣆⠙⢆⡀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢾⣿⣤⣿⣿⣿⡟⠹⣿⣿⣿⣿⣷⡀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣧⣴⣿⣿⣿⣿⠏⢧⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⠈⢳
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡏⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⢸
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠸⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡇⢠⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠃⢸⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣼⢸⣿⣿⣿⣿⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⢸⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀
-        </pre>
-
-        <pre class="art-big">
-    ██▓███  ██░ ██  ▒█████  ███▄    █ ▓█████  ██░ ██  █    ██  ███▄    █ ▄▄▄█████▓▓█████  ██▀███  
-    ▓██░  ██▓██░ ██▒▒██▒  ██▒██ ▀█   █ ▓█   ▀ ▓██░ ██▒ ██  ▓██▒ ██ ▀█   █ ▓  ██▒ ▓▒▓█   ▀ ▓██ ▒ ██▒
-    ▓██░ ██▓▒██▀▀██░▒██░  ██▓██  ▀█ ██▒███   ▒██▀▀██░▓██  ▒██░▓██  ▀█ ██▒ ▓██░ ▒░▒███   ▓██ ░▄█ ▒
-    ▒██▄█▓▒ ░▓█ ░██ ▒██   ██▓██▒  ▐▌██▒▓█  ▄ ░▓█ ░██ ▓▓█  ░██░▓██▒  ▐▌██░ ▓██▓ ░ ▒▓█  ▄ ▒██▀▀█▄  
-    ▒██▒ ░  ░▓█▒░██▓░ ████▓▒▒██░   ▓██░▒████▒░▓█▒░██▓▒▒█████▓ ▒██░   ▓██░ ▒██▒ ░ ░▒████▒░██▓ ▒██▒
-    ▒▓▒░ ░  ░▒ ░░▒░▒░ ▒░▒░▒░░ ▒░   ▒ ▒░░ ▒░ ░ ▒ ░░▒░▒░▒▓▒ ▒ ▒ ░ ▒░   ▒ ▒  ▒ ░░   ░░ ▒░ ░░ ▒▓ ░▒▓░
-    ░▒ ░     ▒ ░▒░ ░  ░ ▒ ▒░░ ░░   ░ ▒░░ ░  ░ ▒ ░▒░ ░░░▒░ ░ ░ ░ ░░   ░ ▒░   ░     ░ ░  ░  ░▒ ░ ▒░
-    ░░       ░  ░░ ░░ ░ ░ ▒    ░   ░ ░   ░    ░  ░░ ░ ░░░ ░ ░    ░   ░ ░  ░         ░     ░░   ░ 
-             ░  ░  ░    ░ ░          ░   ░  ░ ░  ░  ░   ░              ░         ░  ░   ░     
-        </pre>
-
-        <div class="buttons">
-            <button class="btn primary" onclick="showPage('tools')">Launch Tool</button>
-            <button class="btn secondary" onclick="showPage('tools')">Start Search</button>
-        </div>
-
-        <div class="cards">
-            <div class="card"><h3>HLR</h3><p>Home Location Register lookup. City, region, operator, timezone.</p></div>
-            <div class="card"><h3>LEAKS</h3><p>Search across HaveIBeenPwned, LeakCheck, PSBDMP databases.</p></div>
-            <div class="card"><h3>FRAUD</h3><p>Fraud detection: spam, collector, scammer reports.</p></div>
-        </div>
-    </section>
+<div id="bootScreen">
+    <div class="boot-logo">PHONE HUNTER BETA-1.0</div>
+    <div class="boot-subtitle">SYSTEM INITIALIZATION</div>
+    <div class="boot-progress-container">
+        <div class="boot-progress-bar"><div class="boot-progress-fill" id="bootFill"></div></div>
+        <div class="boot-percent" id="bootPercent">0%</div>
+    </div>
 </div>
 
-<!-- TOOLS PAGE -->
-<div class="page" id="toolsPage">
-    <div class="tools-container">
-        <div class="tag" style="margin-top:20px;">PHONE INTELLIGENCE TOOL</div>
-
+<div id="mainSite">
+    <div class="container">
         <div class="search-line">
             <span class="prompt">$</span>
             <input type="text" id="phoneInput" placeholder="search --phone +79001234567" autofocus spellcheck="false">
             <button id="searchBtn" onclick="doSearch()">Execute</button>
-            <button onclick="clearAll()" style="border-left:1px solid rgba(180,0,0,0.2);color:#555;">Clear</button>
+            <button onclick="clearAll()" style="border-left:1px solid #1a1a1a;color:var(--dim);">Clear</button>
         </div>
 
         <div class="main-row">
@@ -254,43 +130,73 @@
         </div>
 
         <div class="status-line">
-            <span id="statusText">● <span class="off">OFFLINE</span></span>
+            <span id="statusText">? <span class="off">OFFLINE</span></span>
             <span>127.0.0.1:8000</span>
             <span id="queryCount">0 queries</span>
         </div>
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    const canvas = document.getElementById('matrix');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const chars = '01PHONEHUNTEROSINT';
-    const fontSize = 14;
-    const columns = canvas.width / fontSize;
-    const drops = Array(Math.floor(columns)).fill(1);
-    function draw() {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#b30000';
-        ctx.font = fontSize + 'px monospace';
-        for (let i = 0; i < drops.length; i++) {
-            const text = chars[Math.floor(Math.random() * chars.length)];
-            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-            drops[i]++;
+    // BOOT
+    let p = 0;
+    const fill = document.getElementById('bootFill');
+    const percent = document.getElementById('bootPercent');
+    const steps = [10, 25, 40, 55, 70, 85, 95, 100];
+    let si = 0;
+    function nb() {
+        if (si >= steps.length) {
+            setTimeout(() => {
+                document.getElementById('bootScreen').classList.add('hidden');
+                document.getElementById('mainSite').classList.add('visible');
+            }, 400);
+            return;
         }
+        fill.style.width = steps[si] + '%';
+        percent.textContent = steps[si] + '%';
+        si++;
+        setTimeout(nb, 350 + Math.random() * 500);
     }
-    setInterval(draw, 35);
-    window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+    setTimeout(nb, 500);
 
-    function showPage(page) {
-        document.getElementById('homePage').classList.remove('active');
-        document.getElementById('toolsPage').classList.remove('active');
-        if (page === 'home') document.getElementById('homePage').classList.add('active');
-        else document.getElementById('toolsPage').classList.add('active');
+    // PARTICLES
+    const pc = document.getElementById('particlesOverlay');
+    function cp() {
+        const p = document.createElement('div'); p.className = 'particle';
+        p.style.left = Math.random()*100+'%';
+        p.style.animationDuration = (3+Math.random()*5)+'s';
+        p.style.animationDelay = Math.random()*3+'s';
+        pc.appendChild(p); setTimeout(() => p.remove(), 8000);
     }
+    setInterval(cp, 200);
+    for (let i=0;i<30;i++) setTimeout(cp, i*100);
+
+    // 3D
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bgCanvas'), alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const pg = new THREE.BufferGeometry(); const pa = new Float32Array(800*3);
+    for (let i=0;i<800*3;i++) pa[i] = (Math.random()-0.5)*20;
+    pg.setAttribute('position', new THREE.BufferAttribute(pa, 3));
+    const pm = new THREE.Points(pg, new THREE.PointsMaterial({ size:0.03, color:0xb30000, transparent:true, opacity:0.6, blending:THREE.AdditiveBlending }));
+    scene.add(pm);
+    const sg = new THREE.SphereGeometry(4,24,24); const sm = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ color:0xb30000, wireframe:true, transparent:true, opacity:0.08 }));
+    scene.add(sm);
+    const tg = new THREE.TorusGeometry(5,0.15,16,60); const tm = new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ color:0xb30000, wireframe:true, transparent:true, opacity:0.05 }));
+    tm.rotation.x = Math.PI/3; scene.add(tm);
+    camera.position.z = 8;
+    function animate() {
+        requestAnimationFrame(animate);
+        pm.rotation.y += 0.0003; pm.rotation.x += 0.0001;
+        sm.rotation.y += 0.002; sm.rotation.x += 0.001;
+        tm.rotation.z += 0.003; tm.rotation.y += 0.001;
+        renderer.render(scene, camera);
+    }
+    animate();
+    window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
 
     const API = 'https://phone-hunter1.onrender.com/api/v1';
     let qc = +(localStorage.getItem('hqc')||'0');
@@ -298,10 +204,11 @@
     const se = document.getElementById('statusText'), ce = document.getElementById('queryCount');
     ce.textContent = qc+' queries';
     async function cs() {
-        try { const r = await fetch('�����_URL/'); se.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>'; }
-        catch(e) { se.innerHTML = '● <span class="off">OFFLINE</span>'; }
+        try { const r = await fetch('https://phone-hunter1.onrender.com/'); se.innerHTML = r.ok ? '? <span class="on">ONLINE</span>' : '? <span class="off">ERROR</span>'; }
+        catch(e) { se.innerHTML = '? <span class="off">OFFLINE</span>'; }
     }
     cs(); setInterval(cs, 10000);
+    document.getElementById('phoneInput').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
 
     function dg(phone, country, region, city, operator) {
         const svg = document.getElementById('graphSvg');
@@ -317,14 +224,14 @@
         let s = '';
         for(let i=0;i<nodes.length-1;i++) {
             const y1=startY+i*spacing+14, y2=startY+(i+1)*spacing-14;
-            s+=`<line x1="130" y1="${y1}" x2="130" y2="${y2}" stroke="#333" stroke-width="1"/>`;
-            const my=(y1+y2)/2; s+=`<polygon points="127,${my-4} 133,${my} 127,${my+4}" fill="#444"/>`;
+            s+=<line x1="130" y1="" x2="130" y2="" stroke="#333" stroke-width="1"/>;
+            const my=(y1+y2)/2; s+=<polygon points="127, 133, 127," fill="#444"/>;
         }
         for(let i=0;i<nodes.length;i++) {
             const y=startY+i*spacing;
-            s+=`<g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','${nodes[i].color}');">`;
-            s+=`<rect x="60" y="${y-12}" width="140" height="24" rx="4" fill="#0a0a0a" stroke="${nodes[i].color}" stroke-width="1.5"/>`;
-            s+=`<text x="130" y="${y+4}" text-anchor="middle" fill="${nodes[i].color}" font-size="9" font-family="Courier New,monospace">${nodes[i].text}</text></g>`;
+            s+=<g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','');">;
+            s+=<rect x="60" y="" width="140" height="24" rx="4" fill="#0a0a0a" stroke="" stroke-width="1.5"/>;
+            s+=<text x="130" y="" text-anchor="middle" fill="" font-size="9" font-family="Courier New,monospace"></text></g>;
         }
         svg.innerHTML = s;
     }
@@ -333,41 +240,53 @@
         const raw = document.getElementById('phoneInput').value.trim();
         if(!raw) return;
         const btn = document.getElementById('searchBtn'), out = document.getElementById('output');
+        
+        // ���� 4: ��������� Telegram ID
+        const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
+        if (!tg) {
+            out.innerHTML = '<span class="err">[!] Open this Mini App from Telegram bot</span>';
+            return;
+        }
+        
         btn.disabled = true; btn.textContent = '...'; out.innerHTML = '<span class="c">[~] Scanning...</span>';
+        const headers = { 'Content-Type': 'application/json', 'X-Telegram-ID': String(tg) };
+        
         try {
-            const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
-    const headers = { 'Content-Type': 'application/json' };
-    if (tg) headers['X-Telegram-ID'] = String(tg);
-    const resp = await fetch(API+'/search', { method:'POST', headers, body:JSON.stringify({phone:raw}) });
+            const resp = await fetch(API+'/search', { method:'POST', headers, body:JSON.stringify({phone:raw}) });
+            if (resp.status === 429) {
+                out.innerHTML = '<span class="err">[!] No requests left today. Come back tomorrow or buy more.</span>';
+                btn.disabled = false; btn.textContent = 'Execute';
+                return;
+            }
             const data = await resp.json(); cr = data; const r = data.result;
             const city = r.hlr.city||r.geo.city||'', region = r.hlr.region||r.geo.region_name||'';
             const area = r.hlr.area||'', country = r.validation.country||r.hlr.country||'';
             const operator = r.validation.operator||r.hlr.provider||'';
             dg(r.query.normalized, country, region, city, operator);
             let log = [];
-            log.push(`<span class="h">═══ MAIN ═══</span>`);
-            log.push(`<span class="s">Phone:</span>    ${r.query.normalized}`);
-            log.push(`<span class="s">Operator:</span> <span class="loc">${operator||'—'}</span>`);
-            log.push(`<span class="s">Country:</span>  ${country||'—'}`);
-            log.push(''); log.push(`<span class="h">═══ LOCATION ═══</span>`);
-            if(city) log.push(`<span class="s">City:</span>     <span class="loc">${city}</span>`);
-            if(region) log.push(`<span class="s">Region:</span>   <span class="loc">${region}</span>`);
-            if(area) log.push(`<span class="s">District:</span>  <span class="loc">${area}</span>`);
+            log.push(<span class="h">=== MAIN ===</span>);
+            log.push(<span class="s">Phone:</span>    );
+            log.push(<span class="s">Operator:</span> <span class="loc"></span>);
+            log.push(<span class="s">Country:</span>  );
+            log.push(''); log.push(<span class="h">=== LOCATION ===</span>);
+            if(city) log.push(<span class="s">City:</span>     <span class="loc"></span>);
+            if(region) log.push(<span class="s">Region:</span>   <span class="loc"></span>);
+            if(area) log.push(<span class="s">District:</span>  <span class="loc"></span>);
             log.push(''); const risk=r.risk_score;
-            log.push(`<span class="h">═══ RISK ═══</span>`);
-            log.push(`<span class="s">Score:</span>    <span class="${risk>70?'err':risk>30?'warn':'ok'}">${risk}/100</span>`);
-            log.push(''); log.push(`<span class="h">═══ MESSENGERS ═══</span>`);
-            for(const[k,v] of Object.entries(r.messengers)) log.push(`  ${k}: ${v?'<span class="ok">✓</span>':'<span class="err">✗</span>'}`);
-            log.push(''); log.push(`<span class="h">═══ LEAKS ═══</span>`);
-            if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(`  <span class="warn">⚠</span> ${l.name}`); }
-            else log.push(`  <span class="ok">✓ CLEAN</span>`);
-            log.push(''); log.push(`<span class="h">═══ FRAUD ═══</span>`);
-            if(r.fraud.has_complaints) log.push(`  <span class="err">⚠</span> ${r.fraud.tags.join(', ')}`);
-            else log.push(`  <span class="ok">✓ CLEAN</span>`);
-            log.push(''); log.push(`<span class="h">═══ LINE ═══</span>`);
-            log.push(`  ${r.line_type.is_business?'<span class="warn">BUSINESS</span>':r.line_type.is_mass_activation?'<span class="warn">MASS ACTIVATION</span>':'<span class="ok">PERSONAL</span>'}`);
-            log.push(''); log.push(`<span class="h">═══ PORT ═══</span>`);
-            log.push(`  ${r.port.ported?'<span class="warn">PORTED</span>':'<span class="ok">NATIVE</span>'}`);
+            log.push(<span class="h">=== RISK ===</span>);
+            log.push(<span class="s">Score:</span>    <span class="">/100</span>);
+            log.push(''); log.push(<span class="h">=== MESSENGERS ===</span>);
+            for(const[k,v] of Object.entries(r.messengers)) log.push(  : );
+            log.push(''); log.push(<span class="h">=== LEAKS ===</span>);
+            if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(  <span class="warn">?</span> ); }
+            else log.push(  <span class="ok">? CLEAN</span>);
+            log.push(''); log.push(<span class="h">=== FRAUD ===</span>);
+            if(r.fraud.has_complaints) log.push(  <span class="err">?</span> );
+            else log.push(  <span class="ok">? CLEAN</span>);
+            log.push(''); log.push(<span class="h">=== LINE ===</span>);
+            log.push(  );
+            log.push(''); log.push(<span class="h">=== PORT ===</span>);
+            log.push(  );
             out.innerHTML = log.join('\n');
             qc++; localStorage.setItem('hqc', qc); ce.textContent = qc+' queries';
         } catch(e) { out.innerHTML = '<span class="err">[!] CONNECTION REFUSED</span>'; }
@@ -383,4 +302,3 @@
 </script>
 </body>
 </html>
-
