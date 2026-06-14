@@ -290,29 +290,58 @@
         @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } .scanlines, .bg-grid, .logo-icon { animation: none !important; } }
         @media (prefers-color-scheme:light) { body { background: var(--bg-0); color: var(--text-0); } }
         @media (-webkit-min-device-pixel-ratio:2), (min-resolution:192dpi) { .scanlines { opacity: 0.2; } }
+        /* ΠΡƒΠ»ΡΡΠ°Ρ†ΠΈΡ Ρ†ΠµΠ½Ρ‚Ρ€Π°Π»ΡΠ½ΠΎΠΉ Ρ‚ΠΎΡ‡ΠΊΠΈ (Π³Π»Π°Π·) */
+@keyframes osintPulse {
+    0%, 100% { text-shadow: 0 0 0px #fff; opacity: 0.7; }
+    50% { text-shadow: 0 0 12px #fff, 0 0 20px #fff; opacity: 1; }
+}
+
+.loading-ascii {
+    animation: osintPulse 2s infinite;
+}
     </style>
 </head>
 <body>
 
 <div class="loading-screen" id="loadingScreen">
     <pre class="loading-ascii">
-γ===============================================================¬
-¦                                                               ¦
-¦     ------¬  --¬  --¬  ------¬  ---¬   --¬ -------¬          ¦
-¦     --γ==--¬ --¦  --¦ --γ===--¬ ----¬  --¦ --γ====-          ¦
-¦     ------γ- -------¦ --¦   --¦ --γ--¬ --¦ -----¬            ¦
-¦     --γ===-  --γ==--¦ --¦   --¦ --¦L--¬--¦ --γ==-            ¦
-¦     --¦      --¦  --¦ L------γ- --¦ L----¦ -------¬          ¦
-¦     L=-      L=-  L=-  L=====-  L=-  L===- L======-          ¦
-¦                                                               ¦
-¦     --¬  --¬ --¬   --¬ ---¬   --¬ --------¬ -------¬ ------¬ ¦
-¦     --¦  --¦ --¦   --¦ ----¬  --¦ L==--γ==- --γ====- --γ==--¬ ¦
-¦     -------¦ --¦   --¦ --γ--¬ --¦    --¦    -----¬   ------γ- ¦
-¦     --γ==--¦ --¦   --¦ --¦L--¬--¦    --¦    --γ==-   --γ==--¬ ¦
-¦     --¦  --¦ L------γ- --¦ L----¦    --¦    -------¬ --¦  --¦ ¦
-¦     L=-  L=-  L=====-  L=-  L===-    L=-    L======- L=-  L=- ¦
-¦                                                               ¦
-L===============================================================-
+        <pre class="loading-ascii" style="text-align: center; line-height: 1.25;">
+β•”β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•—
+β•‘  [+]                    SCAN MODE: ACTIVE                     [+]  β•‘
+β•‘                                                                   β•‘
+β•‘                .β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€.          β•‘
+β•‘              β•±                                           β•²        β•‘
+β•‘             β”‚               β”β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”          β”‚       β•‘
+β•‘             β”‚              β•±                   β•²         β”‚       β•‘
+β•‘             β”‚             β”‚      β”β”€β”€β”€β”€β”€β”€β”€β”      β”‚        β”‚       β•‘
+β•‘             β”‚             β”‚     β•±         β•²     β”‚        β”‚       β•‘
+β•‘             β”‚             β”‚    β”‚    β—β—β—    β”‚    β”‚        β”‚       β•‘
+β•‘  β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”Όβ”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”Όβ”€β”€β”€β”€β”Όβ”€β”€β”€β”€β”€β—β”€β—β”€β”€β”€β”€β”€β”Όβ”€β”€β”€β”€β”Όβ”€β”€β”€β”€β”€β”€β”€β”€β”Όβ”€β”€β”€β”€β”€β”€ β•‘
+β•‘             β”‚             β”‚    β”‚    β—β—β—    β”‚    β”‚        β”‚       β•‘
+β•‘             β”‚             β”‚     β•²         β•±     β”‚        β”‚       β•‘
+β•‘             β”‚             β”‚      'β”€β”€β”€β”€β”€β”€β”€'      β”‚        β”‚       β•‘
+β•‘             β”‚              β•²                   β•±         β”‚       β•‘
+β•‘             β”‚               'β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€'          β”‚       β•‘
+β•‘              β•²                                           β•±        β•‘
+β•‘                'β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€'          β•‘
+β•‘                                                                   β•‘
+β•‘  [+]                  T A R G E T   L O C K E D               [+]  β•‘
+β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•β•
+
+β–β–β–β–β–β–β•— β–β–β•—  β–β–β•— β–β–β–β–β–β–β•— β–β–β–β•—   β–β–β•—β–β–β–β–β–β–β–β•—
+β–β–β•”β•β•β–β–β•—β–β–β•‘  β–β–β•‘β–β–β•”β•β•β•β–β–β•—β–β–β–β–β•—  β–β–β•‘β–β–β•”β•β•β•β•β•
+β–β–β–β–β–β–β•”β•β–β–β–β–β–β–β–β•‘β–β–β•‘   β–β–β•‘β–β–β•”β–β–β•— β–β–β•‘β–β–β–β–β–β•—  
+β–β–β•”β•β•β•β• β–β–β•”β•β•β–β–β•‘β–β–β•‘   β–β–β•‘β–β–β•‘β•β–β–β•—β–β–β•‘β–β–β•”β•β•β•  
+β–β–β•‘     β–β–β•‘  β–β–β•‘β•β–β–β–β–β–β–β•”β•β–β–β•‘ β•β–β–β–β–β•‘β–β–β–β–β–β–β–β•—
+β•β•β•     β•β•β•  β•β•β• β•β•β•β•β•β•β• β•β•β•  β•β•β•β•β•β•β•β•β•β•β•β•β•
+
+β–β–β•—  β–β–β•—β–β–β•—   β–β–β•—β–β–β–β•—   β–β–β•—β–β–β–β–β–β–β–β–β•—β–β–β–β–β–β–β–β•—β–β–β–β–β–β–β•— 
+β–β–β•‘  β–β–β•‘β–β–β•‘   β–β–β•‘β–β–β–β–β•—  β–β–β•‘β•β•β•β–β–β•”β•β•β•β–β–β•”β•β•β•β•β•β–β–β•”β•β•β–β–β•—
+β–β–β–β–β–β–β–β•‘β–β–β•‘   β–β–β•‘β–β–β•”β–β–β•— β–β–β•‘   β–β–β•‘   β–β–β–β–β–β•—  β–β–β–β–β–β–β•”β•
+β–β–β•”β•β•β–β–β•‘β–β–β•‘   β–β–β•‘β–β–β•‘β•β–β–β•—β–β–β•‘   β–β–β•‘   β–β–β•”β•β•β•  β–β–β•”β•β•β–β–β•—
+β–β–β•‘  β–β–β•‘β•β–β–β–β–β–β–β•”β•β–β–β•‘ β•β–β–β–β–β•‘   β–β–β•‘   β–β–β–β–β–β–β–β•—β–β–β•‘  β–β–β•‘
+β•β•β•  β•β•β• β•β•β•β•β•β•β• β•β•β•  β•β•β•β•β•   β•β•β•   β•β•β•β•β•β•β•β•β•β•β•  β•β•β•
+</pre>
     </pre>
     <div class="loading-bar"></div>
     <div class="loading-text">INITIALIZING SYSTEM</div>
@@ -361,26 +390,26 @@ L===============================================================-
     <section class="hero">
         <div class="hero-badge">
             <span class="dot"></span>
-            <span>PHONE INTELLIGENCE SYSTEM · BETA-1.0</span>
+            <span>PHONE INTELLIGENCE SYSTEM οΏ½ BETA-1.0</span>
         </div>
         <div class="ascii-art-container">
             <pre class="ascii-art">
-γ===============================================================¬
-¦                                                               ¦
-¦     ------¬  --¬  --¬  ------¬  ---¬   --¬ -------¬          ¦
-¦     --γ==--¬ --¦  --¦ --γ===--¬ ----¬  --¦ --γ====-          ¦
-¦     ------γ- -------¦ --¦   --¦ --γ--¬ --¦ -----¬            ¦
-¦     --γ===-  --γ==--¦ --¦   --¦ --¦L--¬--¦ --γ==-            ¦
-¦     --¦      --¦  --¦ L------γ- --¦ L----¦ -------¬          ¦
-¦     L=-      L=-  L=-  L=====-  L=-  L===- L======-          ¦
-¦                                                               ¦
-¦     --¬  --¬ --¬   --¬ ---¬   --¬ --------¬ -------¬ ------¬ ¦
-¦     --¦  --¦ --¦   --¦ ----¬  --¦ L==--γ==- --γ====- --γ==--¬ ¦
-¦     -------¦ --¦   --¦ --γ--¬ --¦    --¦    -----¬   ------γ- ¦
-¦     --γ==--¦ --¦   --¦ --¦L--¬--¦    --¦    --γ==-   --γ==--¬ ¦
-¦     --¦  --¦ L------γ- --¦ L----¦    --¦    -------¬ --¦  --¦ ¦
-¦     L=-  L=-  L=====-  L=-  L===-    L=-    L======- L=-  L=- ¦
-¦                                                               ¦
+οΏ½===============================================================οΏ½
+οΏ½                                                               οΏ½
+οΏ½     ------οΏ½  --οΏ½  --οΏ½  ------οΏ½  ---οΏ½   --οΏ½ -------οΏ½          οΏ½
+οΏ½     --οΏ½==--οΏ½ --οΏ½  --οΏ½ --οΏ½===--οΏ½ ----οΏ½  --οΏ½ --οΏ½====-          οΏ½
+οΏ½     ------οΏ½- -------οΏ½ --οΏ½   --οΏ½ --οΏ½--οΏ½ --οΏ½ -----οΏ½            οΏ½
+οΏ½     --οΏ½===-  --οΏ½==--οΏ½ --οΏ½   --οΏ½ --οΏ½L--οΏ½--οΏ½ --οΏ½==-            οΏ½
+οΏ½     --οΏ½      --οΏ½  --οΏ½ L------οΏ½- --οΏ½ L----οΏ½ -------οΏ½          οΏ½
+οΏ½     L=-      L=-  L=-  L=====-  L=-  L===- L======-          οΏ½
+οΏ½                                                               οΏ½
+οΏ½     --οΏ½  --οΏ½ --οΏ½   --οΏ½ ---οΏ½   --οΏ½ --------οΏ½ -------οΏ½ ------οΏ½ οΏ½
+οΏ½     --οΏ½  --οΏ½ --οΏ½   --οΏ½ ----οΏ½  --οΏ½ L==--οΏ½==- --οΏ½====- --οΏ½==--οΏ½ οΏ½
+οΏ½     -------οΏ½ --οΏ½   --οΏ½ --οΏ½--οΏ½ --οΏ½    --οΏ½    -----οΏ½   ------οΏ½- οΏ½
+οΏ½     --οΏ½==--οΏ½ --οΏ½   --οΏ½ --οΏ½L--οΏ½--οΏ½    --οΏ½    --οΏ½==-   --οΏ½==--οΏ½ οΏ½
+οΏ½     --οΏ½  --οΏ½ L------οΏ½- --οΏ½ L----οΏ½    --οΏ½    -------οΏ½ --οΏ½  --οΏ½ οΏ½
+οΏ½     L=-  L=-  L=====-  L=-  L===-    L=-    L======- L=-  L=- οΏ½
+οΏ½                                                               οΏ½
 L===============================================================-
             </pre>
         </div>
@@ -390,7 +419,7 @@ L===============================================================-
         </h1>
         <p class="hero-subtitle">
             Advanced OSINT tool for phone number reconnaissance. 
-            HLR lookup, leak detection, fraud analysis — all in one place.
+            HLR lookup, leak detection, fraud analysis οΏ½ all in one place.
         </p>
         <div class="buttons">
             <button class="btn primary" onclick="showPage('tools')">
@@ -432,8 +461,8 @@ L===============================================================-
             <h2 class="tools-title">Intelligence Console</h2>
             <p class="tools-subtitle">Enter a phone number in any format to begin reconnaissance</p>
             <pre class="tools-ascii">
-γ===================================================================¬
-¦  ?  SYSTEM READY  ?  AWAITING INPUT  ?  PRESS ENTER TO SCAN  ? ¦
+οΏ½===================================================================οΏ½
+οΏ½  ?  SYSTEM READY  ?  AWAITING INPUT  ?  PRESS ENTER TO SCAN  ? οΏ½
 L===================================================================-
             </pre>
         </div>
@@ -485,17 +514,17 @@ L===================================================================-
 </div>
 
 <footer>
-    <p>© 2026 Phone Hunter · Built by <a href="https://github.com/vernidov" target="_blank">VERNIDOV</a> · For educational purposes only</p>
+    <p>οΏ½ 2026 Phone Hunter οΏ½ Built by <a href="https://github.com/vernidov" target="_blank">VERNIDOV</a> οΏ½ For educational purposes only</p>
 </footer>
 
 <script>
-    // ===================== ΘΡΟΠΐΒΛΕΝΝΫΙ ΡΚΠΘΟÒ =====================
-    // 1. Ρκπϋςθε ηΰγπσηξχνξγξ ύκπΰνΰ
+    // ===================== οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ =====================
+    // 1. οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
     setTimeout(() => {
         document.getElementById('loadingScreen').classList.add('hidden');
     }, 2500);
 
-    // 2. Μενώ
+    // 2. οΏ½οΏ½οΏ½οΏ½
     function toggleMenu() {
         document.getElementById('burger').classList.toggle('active');
         document.getElementById('mobileMenu').classList.toggle('active');
@@ -509,13 +538,13 @@ L===================================================================-
         }
     });
 
-    // 3. Οξλσχΰεμ ύλεμενςϋ canvas – ΝΕ ΠΐΝάΨΕ, ΧΕΜ ΞΝΘ ΡΣΩΕΡÒΒΣήÒ
+    // 3. οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ canvas οΏ½ οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½, οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
     const matrixCanvas = document.getElementById('matrix');
     const matrixCtx = matrixCanvas.getContext('2d');
     const particlesCanvas = document.getElementById('particles');
     const particlesCtx = particlesCanvas.getContext('2d');
 
-    // 4. Τσνκφθÿ θημενενθÿ πΰημεπΰ (θροξλόησες σζε ξαϊÿβλεννϋε οεπεμεννϋε)
+    // 4. οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ (οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½)
     function resizeCanvas() {
         matrixCanvas.width = window.innerWidth;
         matrixCanvas.height = window.innerHeight;
@@ -523,7 +552,7 @@ L===================================================================-
         particlesCanvas.height = window.innerHeight;
     }
 
-    // 5. Μΰςπθφΰ
+    // 5. οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
     const chars = '01PHONEHUNTEROSINT<>{}[]/*';
     const fontSize = 14;
     let columns, drops;
@@ -551,7 +580,7 @@ L===================================================================-
         }
     }
 
-    // 6. Χΰρςθφϋ
+    // 6. οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
     let particles = [];
     let particleCount = 40;
     class Particle {
@@ -613,7 +642,7 @@ L===================================================================-
         requestAnimationFrame(drawParticles);
     }
 
-    // 7. Θνθφθΰλθηΰφθÿ θ ΰνθμΰφθÿ
+    // 7. οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
     window.addEventListener('resize', () => {
         resizeCanvas();
         initMatrix();
@@ -624,7 +653,7 @@ L===================================================================-
     setInterval(drawMatrix, 40);
     drawParticles();
 
-    // 8. Νΰβθγΰφθÿ
+    // 8. οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
     function showPage(page) {
         document.getElementById('homePage').classList.remove('active');
         document.getElementById('toolsPage').classList.remove('active');
@@ -661,7 +690,7 @@ L===================================================================-
     }
     cs(); setInterval(cs, 10000);
 
-    // 10. Γπΰτ
+    // 10. οΏ½οΏ½οΏ½οΏ½
     function dg(phone, country, region, city, operator) {
         const svg = document.getElementById('graphSvg');
         const sp = phone.length > 14 ? phone.slice(0,11)+'...' : phone;
@@ -722,7 +751,7 @@ L===================================================================-
         });
     }
 
-    // 12. Οξθρκ
+    // 12. οΏ½οΏ½οΏ½οΏ½οΏ½
     async function doSearch() {
         const raw = document.getElementById('phoneInput').value.trim();
         if (!raw) return;
@@ -754,8 +783,8 @@ L===================================================================-
             lines.push({ text: `<span class="h">  ? MAIN INFORMATION</span>`, delay: 1550 });
             lines.push({ text: `<span class="h">=======================================</span>`, delay: 1600 });
             lines.push({ text: `<span class="s">Phone:</span>      ${r.query.normalized}`, delay: 1650 });
-            lines.push({ text: `<span class="s">Operator:</span>   <span class="loc">${operator || '—'}</span>`, delay: 1700 });
-            lines.push({ text: `<span class="s">Country:</span>    ${country || '—'}`, delay: 1750 });
+            lines.push({ text: `<span class="s">Operator:</span>   <span class="loc">${operator || 'οΏ½'}</span>`, delay: 1700 });
+            lines.push({ text: `<span class="s">Country:</span>    ${country || 'οΏ½'}`, delay: 1750 });
             lines.push({ text: '', delay: 1800 });
             lines.push({ text: `<span class="h">=======================================</span>`, delay: 1850 });
             lines.push({ text: `<span class="h">  ? GEOLOCATION</span>`, delay: 1900 });
@@ -792,7 +821,7 @@ L===================================================================-
                     leakDelay += 50;
                 }
             } else {
-                lines.push({ text: `  <span class="ok">? CLEAN — No breaches found</span>`, delay: messengerDelay + 250 });
+                lines.push({ text: `  <span class="ok">? CLEAN οΏ½ No breaches found</span>`, delay: messengerDelay + 250 });
             }
             lines.push({ text: '', delay: messengerDelay + 300 });
             lines.push({ text: `<span class="h">=======================================</span>`, delay: messengerDelay + 350 });
@@ -802,7 +831,7 @@ L===================================================================-
                 lines.push({ text: `  <span class="err">? FLAGGED</span>`, delay: messengerDelay + 500 });
                 lines.push({ text: `  <span class="s">Tags:</span> ${r.fraud.tags.join(', ')}`, delay: messengerDelay + 550 });
             } else {
-                lines.push({ text: `  <span class="ok">? CLEAN — No complaints</span>`, delay: messengerDelay + 500 });
+                lines.push({ text: `  <span class="ok">? CLEAN οΏ½ No complaints</span>`, delay: messengerDelay + 500 });
             }
             lines.push({ text: '', delay: messengerDelay + 600 });
             lines.push({ text: `<span class="h">=======================================</span>`, delay: messengerDelay + 650 });
@@ -820,9 +849,9 @@ L===================================================================-
             lines.push({ text: `<span class="h">  ? PORTING STATUS</span>`, delay: messengerDelay + 950 });
             lines.push({ text: `<span class="h">=======================================</span>`, delay: messengerDelay + 1000 });
             if (r.port.ported) {
-                lines.push({ text: `  <span class="warn">? PORTED</span> — Number was transferred`, delay: messengerDelay + 1050 });
+                lines.push({ text: `  <span class="warn">? PORTED</span> οΏ½ Number was transferred`, delay: messengerDelay + 1050 });
             } else {
-                lines.push({ text: `  <span class="ok">? NATIVE</span> — Original operator`, delay: messengerDelay + 1050 });
+                lines.push({ text: `  <span class="ok">? NATIVE</span> οΏ½ Original operator`, delay: messengerDelay + 1050 });
             }
             lines.push({ text: '', delay: messengerDelay + 1100 });
             lines.push({ text: `<span class="c">[?] Scan complete. ${new Date().toLocaleTimeString()}</span>`, delay: messengerDelay + 1150 });
@@ -850,7 +879,7 @@ L===================================================================-
 
     document.getElementById('phoneInput').addEventListener('keypress', e => { if (e.key === 'Enter') doSearch(); });
 
-    // Οπεδξςβπΰωενθε ησμΰ νΰ δβξινξι ςΰο (iOS)
+    // οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ (iOS)
     let lastTouchEnd = 0;
     document.addEventListener('touchend', (e) => {
         const now = Date.now();
