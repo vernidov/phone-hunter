@@ -7,21 +7,15 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='0' y='0' width='64' height='64' rx='12' ry='12' fill='%23000'/%3E%3Crect x='1.5' y='1.5' width='61' height='61' rx='11' ry='11' fill='none' stroke='%23b30000' stroke-width='1.5'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%23b30000' stroke-width='1.2' stroke-dasharray='6 5' opacity='.5'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cline x1='19' y1='32' x2='45' y2='32' stroke='%23fff' stroke-width='1.5'/%3E%3Cline x1='32' y1='19' x2='32' y2='45' stroke='%23fff' stroke-width='1.5'/%3E%3Cellipse cx='32' cy='32' rx='7' ry='5' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='2.5' fill='%23b30000'/%3E%3C/svg%3E">
     <style>
         :root {
-            --bg: #0a0a0a;
-            --text: #c0c0c0;
-            --bright: #e0e0e0;
-            --accent: #b30000;
-            --green: #00ff88;
-            --red: #ff3366;
-            --yellow: #ffcc00;
-            --dim: #606060;
+            --bg: #0a0a0a; --text: #c0c0c0; --bright: #e0e0e0;
+            --accent: #b30000; --green: #00ff88; --red: #ff3366;
+            --yellow: #ffcc00; --dim: #606060;
             --font: 'Courier New', 'Consolas', monospace;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: var(--bg); color: var(--text); font-family: var(--font); overflow-x: hidden; }
         #matrixCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 
-        /* Экран загрузки */
         #bootScreen {
             position: fixed; inset: 0; z-index: 100; background: #050505;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -45,7 +39,6 @@
         }
         .boot-percent { text-align: right; font-size: 10px; color: var(--dim); letter-spacing: 1px; margin-top: 6px; }
 
-        /* Основной интерфейс */
         #mainSite { display: none; }
         #mainSite.visible { display: block; }
         .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 30px 20px; }
@@ -55,10 +48,7 @@
             background: rgba(12,12,12,0.9); backdrop-filter: blur(10px);
             transition: border-color 0.3s ease;
         }
-        .search-line:focus-within {
-            border-color: var(--accent);
-            box-shadow: 0 0 30px rgba(179,0,0,0.2);
-        }
+        .search-line:focus-within { border-color: var(--accent); box-shadow: 0 0 30px rgba(179,0,0,0.2); }
         .search-line .prompt {
             padding: 12px 14px; color: var(--accent); font-weight: bold; font-size: 12px;
             border-right: 1px solid #1a1a1a; text-shadow: 0 0 10px var(--accent);
@@ -123,7 +113,6 @@
 <body>
 <canvas id="matrixCanvas"></canvas>
 
-<!-- Экран загрузки -->
 <div id="bootScreen">
     <div class="boot-logo">PHONE HUNTER BETA-1.0</div>
     <div class="boot-subtitle">SYSTEM INITIALIZATION</div>
@@ -133,7 +122,6 @@
     </div>
 </div>
 
-<!-- Основной интерфейс -->
 <div id="mainSite">
     <div class="container">
         <div class="search-line">
@@ -274,9 +262,31 @@
         svg.innerHTML = s;
     }
 
+    // ===== НАДЁЖНОЕ ПОЛУЧЕНИЕ TELEGRAM ID =====
     function getTelegramId() {
-        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-            return window.Telegram.WebApp.initDataUnsafe.user.id;
+        // Если WebApp ещё не готов, ждём
+        if (!window.Telegram || !window.Telegram.WebApp) {
+            return null;
+        }
+        const tg = window.Telegram.WebApp;
+        // Сообщаем Telegram, что приложение готово
+        if (typeof tg.ready === 'function') {
+            tg.ready();
+        }
+        // Пытаемся получить ID пользователя
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            return tg.initDataUnsafe.user.id;
+        }
+        // Иногда user может быть в initData (если есть)
+        if (tg.initData && tg.initData.length > 0) {
+            try {
+                const params = new URLSearchParams(tg.initData);
+                const user = params.get('user');
+                if (user) {
+                    const userObj = JSON.parse(user);
+                    return userObj.id;
+                }
+            } catch(e) {}
         }
         return null;
     }
@@ -286,14 +296,14 @@
         if(!raw) return;
         const btn = document.getElementById('searchBtn'), out = document.getElementById('output');
 
-        const tg = getTelegramId();
-        if (!tg) {
-            out.innerHTML = '<span class="err">[!] Please open this Mini App from Telegram</span>';
+        const tgId = getTelegramId();
+        if (!tgId) {
+            out.innerHTML = '<span class="err">[!] Unable to get Telegram ID. Please open this Mini App from the bot\'s menu button (not via link).</span>';
             return;
         }
 
         btn.disabled = true; btn.textContent = '...'; out.innerHTML = '<span class="c">[~] Scanning...</span>';
-        const headers = { 'Content-Type': 'application/json', 'X-Telegram-ID': String(tg) };
+        const headers = { 'Content-Type': 'application/json', 'X-Telegram-ID': String(tgId) };
 
         try {
             const resp = await fetch(API+'/search', { method:'POST', headers, body:JSON.stringify({phone:raw}) });
