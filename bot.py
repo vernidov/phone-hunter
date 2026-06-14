@@ -29,7 +29,7 @@ def init_db():
     conn.commit(); conn.close()
 
 def get_user(tg): conn=sqlite3.connect(DB_PATH); r=conn.execute('SELECT * FROM users WHERE telegram_id=?',(tg,)).fetchone(); conn.close(); return r
-def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT OR IGNORE INTO users (telegram_id,username,full_name,requests_total,requests_used,last_request_date) VALUES (?,?,?,5,0,date(\"now\"))',(tg,un,fn)); conn.commit(); conn.close()
+def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT OR IGNORE INTO users (telegram_id,username,full_name,requests_total,requests_used,last_request_date) VALUES (?,?,?,5,0,date("now"))',(tg,un,fn)); conn.commit(); conn.close()
 def add_requests(tg,n): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE users SET requests_total=requests_total+? WHERE telegram_id=?',(n,tg)); conn.commit(); conn.close()
 def use_request(tg):
     conn=sqlite3.connect(DB_PATH)
@@ -37,7 +37,7 @@ def use_request(tg):
     conn.commit(); conn.close()
 def reset_daily(tg):
     conn=sqlite3.connect(DB_PATH)
-    conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND last_request_date != date('now')", (tg,))
+    conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND (last_request_date IS NULL OR last_request_date != date('now'))", (tg,))
     conn.commit(); conn.close()
 def save_payment(iid,tg,amt,req,cur): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT INTO payments (invoice_id,telegram_id,amount,requests,currency,status) VALUES (?,?,?,?,?,?)',(iid,tg,amt,req,cur,'pending')); conn.commit(); conn.close()
 def mark_paid(iid): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE payments SET status=? WHERE invoice_id=?',('paid',iid)); conn.commit(); conn.close()
@@ -54,7 +54,7 @@ def check_invoice(invoice_id):
     r = requests.get(f'{CRYPTO_API_URL}/getInvoices?invoice_ids={invoice_id}', headers=headers)
     return r.json()
 
-# HTTP handler for balance check
+# HTTP-обработчик для проверки баланса (API будет сюда стучаться)
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/check-balance':
