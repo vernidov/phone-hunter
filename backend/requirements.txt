@@ -17,3 +17,4 @@ redis
 celery
 aiofiles
 requests
+aiogram
