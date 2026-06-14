@@ -1,4 +1,4 @@
-import os, asyncio, sqlite3, requests, json
+import os, asyncio, sqlite3, requests, json, traceback
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from aiogram import Bot, Dispatcher, types, F
@@ -54,35 +54,54 @@ def check_invoice(invoice_id):
     r = requests.get(f'{CRYPTO_API_URL}/getInvoices?invoice_ids={invoice_id}', headers=headers)
     return r.json()
 
-# HTTP handler for balance check
+# HTTP handler with error logging and FIXED create_user call
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/check-balance':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            data = json.loads(post_data)
-            tg_id = data.get('telegram_id')
-            
-            if tg_id:
-                reset_daily(tg_id)
-                user = get_user(tg_id)
-                if not user:
-                    create_user(tg_id)
-                    user = get_user(tg_id)
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                if content_length == 0:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b'{"error": "Empty body"}')
+                    return
+                post_data = self.rfile.read(content_length)
+                data = json.loads(post_data)
+                tg_id = data.get('telegram_id')
                 
-                if user and user[3] - user[4] > 0:
-                    use_request(tg_id)
-                    self.send_response(200)
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"status": "ok", "remaining": user[3] - user[4] - 1}).encode())
+                if tg_id:
+                    try:
+                        tg_id = int(tg_id)
+                    except ValueError:
+                        self.send_response(400)
+                        self.end_headers()
+                        self.wfile.write(b'{"error": "Invalid telegram_id"}')
+                        return
+                    reset_daily(tg_id)
+                    user = get_user(tg_id)
+                    if not user:
+                        create_user(tg_id, '', '')  # FIXED: passing all 3 arguments
+                        user = get_user(tg_id)
+                    
+                    if user and user[3] - user[4] > 0:
+                        use_request(tg_id)
+                        self.send_response(200)
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"status": "ok", "remaining": user[3] - user[4] - 1}).encode())
+                    else:
+                        self.send_response(429)
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"status": "error", "message": "No requests left"}).encode())
                 else:
-                    self.send_response(429)
+                    self.send_response(400)
                     self.end_headers()
-                    self.wfile.write(json.dumps({"status": "error", "message": "No requests left"}).encode())
-            else:
-                self.send_response(400)
+                    self.wfile.write(b'{"error": "Missing telegram_id"}')
+            except Exception as e:
+                print(f"Error in /check-balance: {e}")
+                traceback.print_exc()
+                self.send_response(500)
                 self.end_headers()
-                self.wfile.write(b'{"error": "Missing telegram_id"}')
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         else:
             self.send_response(404)
             self.end_headers()
