@@ -292,13 +292,13 @@
         else document.getElementById('toolsPage').classList.add('active');
     }
 
-    const API = 'https://vernidov-phone-hunter.onrender.com/api/v1';
+    const API = 'ÕŒ¬€…_URL/api/v1';
     let qc = +(localStorage.getItem('hqc')||'0');
     let cr = null;
     const se = document.getElementById('statusText'), ce = document.getElementById('queryCount');
     ce.textContent = qc+' queries';
     async function cs() {
-        try { const r = await fetch('https://vernidov-phone-hunter.onrender.com/'); se.innerHTML = r.ok ? '‚óè <span class="on">ONLINE</span>' : '‚óè <span class="off">ERROR</span>'; }
+        try { const r = await fetch('ÕŒ¬€…_URL/'); se.innerHTML = r.ok ? '‚óè <span class="on">ONLINE</span>' : '‚óè <span class="off">ERROR</span>'; }
         catch(e) { se.innerHTML = '‚óè <span class="off">OFFLINE</span>'; }
     }
     cs(); setInterval(cs, 10000);
