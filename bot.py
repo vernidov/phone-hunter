@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os, asyncio, sqlite3, requests, json, traceback
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -40,7 +41,7 @@ def reset_daily(tg):
     conn=sqlite3.connect(DB_PATH)
     cur = conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND (last_request_date IS NULL OR last_request_date != date('now'))", (tg,))
     if cur.rowcount > 0:
-        print(f"[reset_daily] tg={tg} — daily limit RESET")
+        print(f"[reset_daily] tg={tg} -- daily limit RESET")
     conn.commit(); conn.close()
 def save_payment(iid,tg,amt,req,cur): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT INTO payments (invoice_id,telegram_id,amount,requests,currency,status) VALUES (?,?,?,?,?,?)',(iid,tg,amt,req,cur,'pending')); conn.commit(); conn.close()
 def mark_paid(iid): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE payments SET status=? WHERE invoice_id=?',('paid',iid)); conn.commit(); conn.close()
@@ -113,7 +114,7 @@ async def start(msg: types.Message):
 @dp.message(F.text == 'Profile')
 async def profile(msg: types.Message):
     u = msg.from_user; create_user(u.id, u.username or '', u.full_name or '')
-    reset_daily(u.id)  # < сброс дневного лимита при проверке профиля
+    reset_daily(u.id)  # daily limit reset when checking profile
     d = get_user(u.id); rem = d[3]-d[4] if d else 5
     await msg.answer(f'*Profile*\n\nName: {u.full_name}\nRequests: *{rem}*\nStatus: {"Premium" if d and d[5] else "Free"}', parse_mode='Markdown')
 
