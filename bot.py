@@ -8,7 +8,7 @@ from aiogram.filters import Command
 BOT_TOKEN = os.environ['BOT_TOKEN']
 CRYPTO_API = os.environ.get('CRYPTO_API', '')
 WEBAPP_URL = 'https://phone-hunter-front.onrender.com'
-ADMIN_ID = 7753936402
+ADMIN_ID = 7725956756
 PORT = int(os.environ.get('PORT', 10000))
 DB_PATH = 'users.db'
 bot = Bot(token=BOT_TOKEN)
@@ -142,3 +142,4 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
