@@ -1,4 +1,4 @@
-import os, asyncio, sqlite3, requests
+import os, asyncio, sqlite3, requests, json
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from aiogram import Bot, Dispatcher, types, F
@@ -24,13 +24,21 @@ PRICES = {
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
-    conn.execute('CREATE TABLE IF NOT EXISTS users (telegram_id INTEGER PRIMARY KEY, username TEXT, full_name TEXT, requests_total INTEGER DEFAULT 5, requests_used INTEGER DEFAULT 0, is_premium INTEGER DEFAULT 0)')
+    conn.execute('CREATE TABLE IF NOT EXISTS users (telegram_id INTEGER PRIMARY KEY, username TEXT, full_name TEXT, requests_total INTEGER DEFAULT 5, requests_used INTEGER DEFAULT 0, is_premium INTEGER DEFAULT 0, last_request_date TEXT)')
     conn.execute('CREATE TABLE IF NOT EXISTS payments (id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_id INTEGER, telegram_id INTEGER, amount REAL, requests INTEGER, currency TEXT, status TEXT)')
     conn.commit(); conn.close()
 
 def get_user(tg): conn=sqlite3.connect(DB_PATH); r=conn.execute('SELECT * FROM users WHERE telegram_id=?',(tg,)).fetchone(); conn.close(); return r
-def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT OR IGNORE INTO users (telegram_id,username,full_name) VALUES (?,?,?)',(tg,un,fn)); conn.commit(); conn.close()
+def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT OR IGNORE INTO users (telegram_id,username,full_name,requests_total,requests_used,last_request_date) VALUES (?,?,?,5,0,date(\"now\"))',(tg,un,fn)); conn.commit(); conn.close()
 def add_requests(tg,n): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE users SET requests_total=requests_total+? WHERE telegram_id=?',(n,tg)); conn.commit(); conn.close()
+def use_request(tg):
+    conn=sqlite3.connect(DB_PATH)
+    conn.execute("UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?", (tg,))
+    conn.commit(); conn.close()
+def reset_daily(tg):
+    conn=sqlite3.connect(DB_PATH)
+    conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND last_request_date != date('now')", (tg,))
+    conn.commit(); conn.close()
 def save_payment(iid,tg,amt,req,cur): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT INTO payments (invoice_id,telegram_id,amount,requests,currency,status) VALUES (?,?,?,?,?,?)',(iid,tg,amt,req,cur,'pending')); conn.commit(); conn.close()
 def mark_paid(iid): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE payments SET status=? WHERE invoice_id=?',('paid',iid)); conn.commit(); conn.close()
 def get_payment(iid): conn=sqlite3.connect(DB_PATH); r=conn.execute('SELECT * FROM payments WHERE invoice_id=?',(iid,)).fetchone(); conn.close(); return r
@@ -46,7 +54,38 @@ def check_invoice(invoice_id):
     r = requests.get(f'{CRYPTO_API_URL}/getInvoices?invoice_ids={invoice_id}', headers=headers)
     return r.json()
 
+# HTTP-обработчик для проверки баланса (API будет сюда стучаться)
 class Handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        if self.path == '/check-balance':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data)
+            tg_id = data.get('telegram_id')
+            
+            if tg_id:
+                reset_daily(tg_id)
+                user = get_user(tg_id)
+                if not user:
+                    create_user(tg_id)
+                    user = get_user(tg_id)
+                
+                if user and user[3] - user[4] > 0:
+                    use_request(tg_id)
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"status": "ok", "remaining": user[3] - user[4] - 1}).encode())
+                else:
+                    self.send_response(429)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"status": "error", "message": "No requests left"}).encode())
+            else:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b'{"error": "Missing telegram_id"}')
+        else:
+            self.send_response(404)
+            self.end_headers()
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
