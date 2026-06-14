@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 from modules.aggregator import Aggregator
@@ -47,7 +48,7 @@ def notify_admin(phone, tg_id, username):
         if not BOT_TOKEN: return
         requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage', json={
             'chat_id': ADMIN_ID,
-            'text': f'?? Новый поиск!\n\nНомер: {phone}\nПользователь: @{username or "нет"}\nID: {tg_id}'
+            'text': f'New search!\nPhone: {phone}\nUser: @{username or "none"}\nID: {tg_id}'
         })
     except: pass
 
@@ -62,8 +63,7 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
             reset_daily(x_telegram_id)
             user = get_user(x_telegram_id)
             if not user: create_user(x_telegram_id, x_telegram_username or ''); user = get_user(x_telegram_id)
-            if user and user[3] - user[4] <= 0:
-                raise HTTPException(429, detail="No requests left today. Come back tomorrow or buy more.")
+            if user and user[3] - user[4] <= 0: raise HTTPException(429, detail="No requests left today")
             use_request(x_telegram_id)
             notify_admin(phone, x_telegram_id, x_telegram_username or '')
     except HTTPException: raise
