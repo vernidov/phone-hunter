@@ -33,11 +33,14 @@ def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT O
 def add_requests(tg,n): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE users SET requests_total=requests_total+? WHERE telegram_id=?',(n,tg)); conn.commit(); conn.close()
 def use_request(tg):
     conn=sqlite3.connect(DB_PATH)
-    conn.execute("UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?", (tg,))
+    cur = conn.execute("UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?", (tg,))
+    print(f"[use_request] tg={tg}, rows_affected={cur.rowcount}")
     conn.commit(); conn.close()
 def reset_daily(tg):
     conn=sqlite3.connect(DB_PATH)
-    conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND (last_request_date IS NULL OR last_request_date != date('now'))", (tg,))
+    cur = conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND (last_request_date IS NULL OR last_request_date != date('now'))", (tg,))
+    if cur.rowcount > 0:
+        print(f"[reset_daily] tg={tg} — daily limit RESET")
     conn.commit(); conn.close()
 def save_payment(iid,tg,amt,req,cur): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT INTO payments (invoice_id,telegram_id,amount,requests,currency,status) VALUES (?,?,?,?,?,?)',(iid,tg,amt,req,cur,'pending')); conn.commit(); conn.close()
 def mark_paid(iid): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE payments SET status=? WHERE invoice_id=?',('paid',iid)); conn.commit(); conn.close()
@@ -54,61 +57,41 @@ def check_invoice(invoice_id):
     r = requests.get(f'{CRYPTO_API_URL}/getInvoices?invoice_ids={invoice_id}', headers=headers)
     return r.json()
 
-# HTTP handler with error logging and FIXED create_user call
+# HTTP handler for balance check (NO reset_daily here!)
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/check-balance':
             try:
                 content_length = int(self.headers.get('Content-Length', 0))
                 if content_length == 0:
-                    self.send_response(400)
-                    self.end_headers()
-                    self.wfile.write(b'{"error": "Empty body"}')
-                    return
+                    self.send_response(400); self.end_headers(); self.wfile.write(b'{"error": "Empty body"}'); return
                 post_data = self.rfile.read(content_length)
                 data = json.loads(post_data)
                 tg_id = data.get('telegram_id')
-                
-                if tg_id:
-                    try:
-                        tg_id = int(tg_id)
-                    except ValueError:
-                        self.send_response(400)
-                        self.end_headers()
-                        self.wfile.write(b'{"error": "Invalid telegram_id"}')
-                        return
-                    reset_daily(tg_id)
+                if not tg_id:
+                    self.send_response(400); self.end_headers(); self.wfile.write(b'{"error": "Missing telegram_id"}'); return
+                try: tg_id = int(tg_id)
+                except ValueError:
+                    self.send_response(400); self.end_headers(); self.wfile.write(b'{"error": "Invalid telegram_id"}'); return
+                user = get_user(tg_id)
+                if not user:
+                    create_user(tg_id, '', '')
                     user = get_user(tg_id)
-                    if not user:
-                        create_user(tg_id, '', '')  # FIXED: passing all 3 arguments
-                        user = get_user(tg_id)
-                    
-                    if user and user[3] - user[4] > 0:
-                        use_request(tg_id)
-                        self.send_response(200)
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"status": "ok", "remaining": user[3] - user[4] - 1}).encode())
-                    else:
-                        self.send_response(429)
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"status": "error", "message": "No requests left"}).encode())
+                if user and user[3] - user[4] > 0:
+                    use_request(tg_id)
+                    self.send_response(200); self.end_headers()
+                    self.wfile.write(json.dumps({"status": "ok", "remaining": user[3] - user[4] - 1}).encode())
                 else:
-                    self.send_response(400)
-                    self.end_headers()
-                    self.wfile.write(b'{"error": "Missing telegram_id"}')
+                    self.send_response(429); self.end_headers()
+                    self.wfile.write(json.dumps({"status": "error", "message": "No requests left"}).encode())
             except Exception as e:
-                print(f"Error in /check-balance: {e}")
-                traceback.print_exc()
-                self.send_response(500)
-                self.end_headers()
+                print(f"Error in /check-balance: {e}"); traceback.print_exc()
+                self.send_response(500); self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
         else:
-            self.send_response(404)
-            self.end_headers()
+            self.send_response(404); self.end_headers()
     def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b'bot is running')
+        self.send_response(200); self.end_headers(); self.wfile.write(b'bot is running')
 
 def start_web():
     server = HTTPServer(('0.0.0.0', PORT), Handler)
@@ -130,6 +113,7 @@ async def start(msg: types.Message):
 @dp.message(F.text == 'Profile')
 async def profile(msg: types.Message):
     u = msg.from_user; create_user(u.id, u.username or '', u.full_name or '')
+    reset_daily(u.id)  # < сброс дневного лимита при проверке профиля
     d = get_user(u.id); rem = d[3]-d[4] if d else 5
     await msg.answer(f'*Profile*\n\nName: {u.full_name}\nRequests: *{rem}*\nStatus: {"Premium" if d and d[5] else "Free"}', parse_mode='Markdown')
 
@@ -150,8 +134,7 @@ async def shop(msg: types.Message):
 
 @dp.callback_query(F.data.startswith('buy_'))
 async def buy(call: types.CallbackQuery):
-    parts = call.data.replace('buy_','').split('_')
-    pkg = parts[0]; currency = parts[1]; pd = PRICES[pkg]
+    parts = call.data.replace('buy_','').split('_'); pkg = parts[0]; currency = parts[1]; pd = PRICES[pkg]
     invoice = create_invoice(pd['price'], currency)
     if invoice.get('ok'):
         result = invoice['result']; iid = result['invoice_id']; pay_url = result['bot_invoice_url']
@@ -163,13 +146,11 @@ async def buy(call: types.CallbackQuery):
                 [InlineKeyboardButton(text=f'Pay {pd["price"]} {currency}', url=pay_url)],
                 [InlineKeyboardButton(text='Check payment', callback_data=f'check_{iid}_{pkg}')]
             ]))
-    else: await call.message.answer('Error creating invoice.')
-    await call.answer()
+    else: await call.message.answer('Error creating invoice.'); await call.answer()
 
 @dp.callback_query(F.data.startswith('check_'))
 async def check(call: types.CallbackQuery):
-    parts = call.data.replace('check_','').split('_')
-    iid = int(parts[0]); pkg = parts[1]; pd = PRICES[pkg]
+    parts = call.data.replace('check_','').split('_'); iid = int(parts[0]); pkg = parts[1]; pd = PRICES[pkg]
     result = check_invoice(iid)
     if result.get('ok') and result['result']['items']:
         inv = result['result']['items'][0]
@@ -181,8 +162,7 @@ async def check(call: types.CallbackQuery):
                 await bot.send_message(payment[2], f'Payment confirmed! *{pd["requests"]}* requests added!', parse_mode='Markdown')
             else: await call.message.answer('Already paid.')
         else: await call.message.answer('Payment not received yet.')
-    else: await call.message.answer('Invoice not found.')
-    await call.answer()
+    else: await call.message.answer('Invoice not found.'); await call.answer()
 
 @dp.message(Command('admin'))
 async def admin(msg: types.Message):
