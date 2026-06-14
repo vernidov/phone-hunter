@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os, asyncio, sqlite3, requests, json, traceback
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -7,7 +6,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, Inlin
 from aiogram.filters import Command
 
 BOT_TOKEN = os.environ['BOT_TOKEN']
-CRYPTO_API = os.environ['CRYPTO_API']
+CRYPTO_API = os.environ.get('CRYPTO_API', '')
 WEBAPP_URL = 'https://phone-hunter-front.onrender.com'
 ADMIN_ID = 7753936402
 PORT = int(os.environ.get('PORT', 10000))
@@ -34,46 +33,27 @@ def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT O
 def add_requests(tg,n): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE users SET requests_total=requests_total+? WHERE telegram_id=?',(n,tg)); conn.commit(); conn.close()
 def use_request(tg):
     conn=sqlite3.connect(DB_PATH)
-    cur = conn.execute("UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?", (tg,))
-    print(f"[use_request] tg={tg}, rows_affected={cur.rowcount}")
+    conn.execute("UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?", (tg,))
     conn.commit(); conn.close()
 def reset_daily(tg):
     conn=sqlite3.connect(DB_PATH)
-    cur = conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND (last_request_date IS NULL OR last_request_date != date('now'))", (tg,))
-    if cur.rowcount > 0:
-        print(f"[reset_daily] tg={tg} -- daily limit RESET")
+    conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND (last_request_date IS NULL OR last_request_date != date('now'))", (tg,))
     conn.commit(); conn.close()
-def save_payment(iid,tg,amt,req,cur): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT INTO payments (invoice_id,telegram_id,amount,requests,currency,status) VALUES (?,?,?,?,?,?)',(iid,tg,amt,req,cur,'pending')); conn.commit(); conn.close()
-def mark_paid(iid): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE payments SET status=? WHERE invoice_id=?',('paid',iid)); conn.commit(); conn.close()
-def get_payment(iid): conn=sqlite3.connect(DB_PATH); r=conn.execute('SELECT * FROM payments WHERE invoice_id=?',(iid,)).fetchone(); conn.close(); return r
 
-def create_invoice(amount, currency='USDT'):
-    headers = {'Crypto-Pay-API-Token': CRYPTO_API}
-    data = {'asset': currency, 'amount': str(amount)}
-    r = requests.post(f'{CRYPTO_API_URL}/createInvoice', json=data, headers=headers)
-    return r.json()
-
-def check_invoice(invoice_id):
-    headers = {'Crypto-Pay-API-Token': CRYPTO_API}
-    r = requests.get(f'{CRYPTO_API_URL}/getInvoices?invoice_ids={invoice_id}', headers=headers)
-    return r.json()
-
-# HTTP handler for balance check (NO reset_daily here!)
+# HTTP handler for balance check
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/check-balance':
             try:
-                content_length = int(self.headers.get('Content-Length', 0))
-                if content_length == 0:
-                    self.send_response(400); self.end_headers(); self.wfile.write(b'{"error": "Empty body"}'); return
-                post_data = self.rfile.read(content_length)
-                data = json.loads(post_data)
+                length = int(self.headers.get('Content-Length', 0))
+                if length == 0:
+                    self.send_response(400); self.end_headers(); self.wfile.write(b'{"error":"Empty body"}'); return
+                data = json.loads(self.rfile.read(length))
                 tg_id = data.get('telegram_id')
                 if not tg_id:
-                    self.send_response(400); self.end_headers(); self.wfile.write(b'{"error": "Missing telegram_id"}'); return
-                try: tg_id = int(tg_id)
-                except ValueError:
-                    self.send_response(400); self.end_headers(); self.wfile.write(b'{"error": "Invalid telegram_id"}'); return
+                    self.send_response(400); self.end_headers(); self.wfile.write(b'{"error":"Missing telegram_id"}'); return
+                tg_id = int(tg_id)
+                reset_daily(tg_id)
                 user = get_user(tg_id)
                 if not user:
                     create_user(tg_id, '', '')
@@ -81,31 +61,27 @@ class Handler(BaseHTTPRequestHandler):
                 if user and user[3] - user[4] > 0:
                     use_request(tg_id)
                     self.send_response(200); self.end_headers()
-                    self.wfile.write(json.dumps({"status": "ok", "remaining": user[3] - user[4] - 1}).encode())
+                    self.wfile.write(json.dumps({"status":"ok","remaining":user[3]-user[4]-1}).encode())
                 else:
                     self.send_response(429); self.end_headers()
-                    self.wfile.write(json.dumps({"status": "error", "message": "No requests left"}).encode())
+                    self.wfile.write(json.dumps({"status":"error","message":"No requests left"}).encode())
             except Exception as e:
-                print(f"Error in /check-balance: {e}"); traceback.print_exc()
+                print(f"Error: {e}"); traceback.print_exc()
                 self.send_response(500); self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                self.wfile.write(json.dumps({"error":str(e)}).encode())
         else:
             self.send_response(404); self.end_headers()
     def do_GET(self):
         self.send_response(200); self.end_headers(); self.wfile.write(b'bot is running')
 
 def start_web():
-    server = HTTPServer(('0.0.0.0', PORT), Handler)
-    server.serve_forever()
-
+    HTTPServer(('0.0.0.0', PORT), Handler).serve_forever()
 Thread(target=start_web, daemon=True).start()
 
 @dp.message(Command('start'))
 async def start(msg: types.Message):
     u = msg.from_user; create_user(u.id, u.username or '', u.full_name or '')
-    await msg.answer(
-        f'Hi, *{u.first_name or "user"}*!\n\n*Phone Hunter BETA-1.0*\n5 free requests\nTON / USDT via CryptoBot\nAuto-credit after payment!',
-        parse_mode='Markdown',
+    await msg.answer(f'Hi, *{u.first_name or "user"}*!\n\n*Phone Hunter BETA-1.0*\n5 free requests\nTON / USDT via CryptoBot', parse_mode='Markdown',
         reply_markup=ReplyKeyboardMarkup(keyboard=[
             [KeyboardButton(text='Open Phone Hunter', web_app=WebAppInfo(url=WEBAPP_URL))],
             [KeyboardButton(text='Profile'), KeyboardButton(text='Buy requests')]
@@ -114,7 +90,7 @@ async def start(msg: types.Message):
 @dp.message(F.text == 'Profile')
 async def profile(msg: types.Message):
     u = msg.from_user; create_user(u.id, u.username or '', u.full_name or '')
-    reset_daily(u.id)  # daily limit reset when checking profile
+    reset_daily(u.id)
     d = get_user(u.id); rem = d[3]-d[4] if d else 5
     await msg.answer(f'*Profile*\n\nName: {u.full_name}\nRequests: *{rem}*\nStatus: {"Premium" if d and d[5] else "Free"}', parse_mode='Markdown')
 
@@ -133,57 +109,32 @@ async def shop(msg: types.Message):
             [InlineKeyboardButton(text='Unlimited 30d - USDT', callback_data='buy_premium_USDT')],
         ]))
 
-@dp.callback_query(F.data.startswith('buy_'))
-async def buy(call: types.CallbackQuery):
-    parts = call.data.replace('buy_','').split('_'); pkg = parts[0]; currency = parts[1]; pd = PRICES[pkg]
-    invoice = create_invoice(pd['price'], currency)
-    if invoice.get('ok'):
-        result = invoice['result']; iid = result['invoice_id']; pay_url = result['bot_invoice_url']
-        save_payment(iid, call.from_user.id, pd['price'], pd['requests'], currency)
-        await call.message.answer(
-            f'*Invoice created!*\n\nPackage: {pd["name"]}\nAmount: {pd["price"]} {currency}\n\nPress button to pay:',
-            parse_mode='Markdown',
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f'Pay {pd["price"]} {currency}', url=pay_url)],
-                [InlineKeyboardButton(text='Check payment', callback_data=f'check_{iid}_{pkg}')]
-            ]))
-    else: await call.message.answer('Error creating invoice.'); await call.answer()
-
-@dp.callback_query(F.data.startswith('check_'))
-async def check(call: types.CallbackQuery):
-    parts = call.data.replace('check_','').split('_'); iid = int(parts[0]); pkg = parts[1]; pd = PRICES[pkg]
-    result = check_invoice(iid)
-    if result.get('ok') and result['result']['items']:
-        inv = result['result']['items'][0]
-        if inv['status'] == 'paid':
-            payment = get_payment(iid)
-            if payment and payment[6] != 'paid':
-                add_requests(payment[2], pd['requests']); mark_paid(iid)
-                await call.message.answer(f'Payment received! +{pd["requests"]} requests!')
-                await bot.send_message(payment[2], f'Payment confirmed! *{pd["requests"]}* requests added!', parse_mode='Markdown')
-            else: await call.message.answer('Already paid.')
-        else: await call.message.answer('Payment not received yet.')
-    else: await call.message.answer('Invoice not found.'); await call.answer()
+@dp.message(Command('give'))
+async def give(msg: types.Message):
+    if msg.from_user.id != ADMIN_ID:
+        await msg.answer("? You are not admin")
+        return
+    parts = msg.text.split()
+    if len(parts) != 3:
+        await msg.answer("? Format: /give TELEGRAM_ID AMOUNT")
+        return
+    try:
+        target_id = int(parts[1])
+        amount = int(parts[2])
+        add_requests(target_id, amount)
+        await msg.answer(f"? Added {amount} requests to user {target_id}")
+        await bot.send_message(target_id, f"?? Admin gave you *{amount}* requests!", parse_mode='Markdown')
+    except Exception as e:
+        await msg.answer(f"? Error: {e}")
 
 @dp.message(Command('admin'))
 async def admin(msg: types.Message):
     if msg.from_user.id != ADMIN_ID: return
     conn = sqlite3.connect(DB_PATH); users = conn.execute('SELECT * FROM users ORDER BY rowid DESC LIMIT 20').fetchall(); conn.close()
     txt = '*Admin panel*\n\n'
-    for u in users: txt += f'ID: {u[0]} | @{u[1] or "none"} | Requests: {u[3]-u[4]}\n'
+    for u in users:
+        txt += f'ID: {u[0]} | @{u[1] or "none"} | Requests: {u[3]-u[4]}\n'
     await msg.answer(txt, parse_mode='Markdown')
-
-@dp.message(Command('give'))
-async def give(msg: types.Message):
-    if msg.from_user.id != ADMIN_ID: return
-    parts = msg.text.split()
-    if len(parts)==3:
-        try:
-            tid=int(parts[1]); amt=int(parts[2]); add_requests(tid,amt)
-            await msg.answer(f'Added {amt} requests to user {tid}')
-            await bot.send_message(tid, f'Admin gave you *{amt}* requests!', parse_mode='Markdown')
-        except: await msg.answer('Format: /give ID amount')
-    else: await msg.answer('/give ID amount')
 
 async def main():
     init_db()
