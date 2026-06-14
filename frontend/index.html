@@ -148,7 +148,7 @@
         </div>
 
         <div class="status-line">
-            <span id="statusText">● <span class="off">OFFLINE</span></span>
+            <span id="statusText">? <span class="off">OFFLINE</span></span>
             <span>phone-hunter1.onrender.com</span>
             <span id="queryCount">0 queries</span>
         </div>
@@ -156,7 +156,7 @@
 </div>
 
 <script>
-    // ===== МАТРИЦА (без Three.js) =====
+    // ===== ������� (��� Three.js) =====
     (function() {
         const canvas = document.getElementById('matrixCanvas');
         const ctx = canvas.getContext('2d');
@@ -185,7 +185,7 @@
         });
     })();
 
-    // ===== ЭКРАН ЗАГРУЗКИ =====
+    // ===== ����� �������� =====
     (function() {
         const fill = document.getElementById('bootFill');
         const percent = document.getElementById('bootPercent');
@@ -207,7 +207,7 @@
         setTimeout(nb, 500);
     })();
 
-    // ===== ОСНОВНАЯ ЛОГИКА =====
+    // ===== �������� ������ =====
     const API = 'https://phone-hunter1.onrender.com/api/v1';
     let qc = +(localStorage.getItem('hqc')||'0');
     let cr = null;
@@ -217,9 +217,9 @@
     async function checkStatus() {
         try {
             const r = await fetch('https://phone-hunter1.onrender.com/');
-            se.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>';
+            se.innerHTML = r.ok ? '? <span class="on">ONLINE</span>' : '? <span class="off">ERROR</span>';
         } catch(e) {
-            se.innerHTML = '● <span class="off">OFFLINE</span>';
+            se.innerHTML = '? <span class="off">OFFLINE</span>';
         }
     }
     checkStatus();
@@ -249,35 +249,31 @@
         for(let i=0; i<nodes.length-1; i++) {
             const y1 = startY + i*spacing + 14;
             const y2 = startY + (i+1)*spacing - 14;
-            s += `<line x1="130" y1="${y1}" x2="130" y2="${y2}" stroke="#333" stroke-width="1"/>`;
+            s += <line x1="130" y1="" x2="130" y2="" stroke="#333" stroke-width="1"/>;
             const my = (y1+y2)/2;
-            s += `<polygon points="127,${my-4} 133,${my} 127,${my+4}" fill="#444"/>`;
+            s += <polygon points="127, 133, 127," fill="#444"/>;
         }
         for(let i=0; i<nodes.length; i++) {
             const y = startY + i*spacing;
-            s += `<g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','${nodes[i].color}');">`;
-            s += `<rect x="60" y="${y-12}" width="140" height="24" rx="4" fill="#0a0a0a" stroke="${nodes[i].color}" stroke-width="1.5"/>`;
-            s += `<text x="130" y="${y+4}" text-anchor="middle" fill="${nodes[i].color}" font-size="9" font-family="Courier New,monospace">${nodes[i].text}</text></g>`;
+            s += <g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','');">;
+            s += <rect x="60" y="" width="140" height="24" rx="4" fill="#0a0a0a" stroke="" stroke-width="1.5"/>;
+            s += <text x="130" y="" text-anchor="middle" fill="" font-size="9" font-family="Courier New,monospace"></text></g>;
         }
         svg.innerHTML = s;
     }
 
-    // ===== НАДЁЖНОЕ ПОЛУЧЕНИЕ TELEGRAM ID =====
+    // ===== ��Ĩ���� ��������� TELEGRAM ID =====
     function getTelegramId() {
-        // Если WebApp ещё не готов, ждём
         if (!window.Telegram || !window.Telegram.WebApp) {
             return null;
         }
         const tg = window.Telegram.WebApp;
-        // Сообщаем Telegram, что приложение готово
         if (typeof tg.ready === 'function') {
             tg.ready();
         }
-        // Пытаемся получить ID пользователя
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
             return tg.initDataUnsafe.user.id;
         }
-        // Иногда user может быть в initData (если есть)
         if (tg.initData && tg.initData.length > 0) {
             try {
                 const params = new URLSearchParams(tg.initData);
@@ -319,29 +315,29 @@
             drawGraph(r.query.normalized, country, region, city, operator);
 
             let log = [];
-            log.push(`<span class="h">═══ MAIN ═══</span>`);
-            log.push(`<span class="s">Phone:</span>    ${r.query.normalized}`);
-            log.push(`<span class="s">Operator:</span> <span class="loc">${operator||'—'}</span>`);
-            log.push(`<span class="s">Country:</span>  ${country||'—'}`);
-            log.push(''); log.push(`<span class="h">═══ LOCATION ═══</span>`);
-            if(city) log.push(`<span class="s">City:</span>     <span class="loc">${city}</span>`);
-            if(region) log.push(`<span class="s">Region:</span>   <span class="loc">${region}</span>`);
-            if(area) log.push(`<span class="s">District:</span>  <span class="loc">${area}</span>`);
+            log.push(<span class="h">=== MAIN ===</span>);
+            log.push(<span class="s">Phone:</span>    );
+            log.push(<span class="s">Operator:</span> <span class="loc"></span>);
+            log.push(<span class="s">Country:</span>  );
+            log.push(''); log.push(<span class="h">=== LOCATION ===</span>);
+            if(city) log.push(<span class="s">City:</span>     <span class="loc"></span>);
+            if(region) log.push(<span class="s">Region:</span>   <span class="loc"></span>);
+            if(area) log.push(<span class="s">District:</span>  <span class="loc"></span>);
             log.push(''); const risk=r.risk_score;
-            log.push(`<span class="h">═══ RISK ═══</span>`);
-            log.push(`<span class="s">Score:</span>    <span class="${risk>70?'err':risk>30?'warn':'ok'}">${risk}/100</span>`);
-            log.push(''); log.push(`<span class="h">═══ MESSENGERS ═══</span>`);
-            for(const[k,v] of Object.entries(r.messengers)) log.push(`  ${k}: ${v?'<span class="ok">✓</span>':'<span class="err">✗</span>'}`);
-            log.push(''); log.push(`<span class="h">═══ LEAKS ═══</span>`);
-            if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(`  <span class="warn">⚠</span> ${l.name}`); }
-            else log.push(`  <span class="ok">✓ CLEAN</span>`);
-            log.push(''); log.push(`<span class="h">═══ FRAUD ═══</span>`);
-            if(r.fraud.has_complaints) log.push(`  <span class="err">⚠</span> ${r.fraud.tags.join(', ')}`);
-            else log.push(`  <span class="ok">✓ CLEAN</span>`);
-            log.push(''); log.push(`<span class="h">═══ LINE ═══</span>`);
-            log.push(`  ${r.line_type.is_business?'<span class="warn">BUSINESS</span>':r.line_type.is_mass_activation?'<span class="warn">MASS ACTIVATION</span>':'<span class="ok">PERSONAL</span>'}`);
-            log.push(''); log.push(`<span class="h">═══ PORT ═══</span>`);
-            log.push(`  ${r.port.ported?'<span class="warn">PORTED</span>':'<span class="ok">NATIVE</span>'}`);
+            log.push(<span class="h">=== RISK ===</span>);
+            log.push(<span class="s">Score:</span>    <span class="">/100</span>);
+            log.push(''); log.push(<span class="h">=== MESSENGERS ===</span>);
+            for(const[k,v] of Object.entries(r.messengers)) log.push(  : );
+            log.push(''); log.push(<span class="h">=== LEAKS ===</span>);
+            if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(  <span class="warn">?</span> ); }
+            else log.push(  <span class="ok">? CLEAN</span>);
+            log.push(''); log.push(<span class="h">=== FRAUD ===</span>);
+            if(r.fraud.has_complaints) log.push(  <span class="err">?</span> );
+            else log.push(  <span class="ok">? CLEAN</span>);
+            log.push(''); log.push(<span class="h">=== LINE ===</span>);
+            log.push(  );
+            log.push(''); log.push(<span class="h">=== PORT ===</span>);
+            log.push(  );
             out.innerHTML = log.join('\n');
             qc++; localStorage.setItem('hqc', qc); ce.textContent = qc+' queries';
         } catch(e) { out.innerHTML = '<span class="err">[!] CONNECTION REFUSED</span>'; }
