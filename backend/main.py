@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os, uvicorn, asyncio, sqlite3, requests
 from threading import Thread
 from fastapi import FastAPI, APIRouter, HTTPException, Header
@@ -9,7 +10,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, Inlin
 from aiogram.filters import Command
 
 BOT_TOKEN = os.environ['BOT_TOKEN']
-CRYPTO_API = os.environ.get('CRYPTO_API','')
+CRYPTO_API = os.environ.get('CRYPTO_API', '')
 WEBAPP_URL = 'https://phone-hunter-front.onrender.com'
 ADMIN_ID = 7753936402
 PORT = int(os.environ.get('PORT', 8000))
@@ -25,10 +26,13 @@ def init_db():
     conn.commit(); conn.close()
 
 def get_user(tg): conn=sqlite3.connect(DB_PATH); r=conn.execute('SELECT * FROM users WHERE telegram_id=?',(tg,)).fetchone(); conn.close(); return r
-def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT OR IGNORE INTO users (telegram_id,username,full_name,requests_total,requests_used,last_request_date) VALUES (?,?,?,5,0,date("now"))',(tg,un,fn)); conn.commit(); conn.close()
+def create_user(tg,un,fn): conn=sqlite3.connect(DB_PATH); conn.execute('INSERT OR IGNORE INTO users (telegram_id,username,full_name,requests_total,requests_used,last_request_date) VALUES (?,?,?,5,0,date(\"now\"))',(tg,un,fn)); conn.commit(); conn.close()
 def add_requests(tg,n): conn=sqlite3.connect(DB_PATH); conn.execute('UPDATE users SET requests_total=requests_total+? WHERE telegram_id=?',(n,tg)); conn.commit(); conn.close()
 def use_request(tg): conn=sqlite3.connect(DB_PATH); conn.execute("UPDATE users SET requests_used = requests_used + 1 WHERE telegram_id=?", (tg,)); conn.commit(); conn.close()
-def reset_daily(tg): conn=sqlite3.connect(DB_PATH); conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND last_request_date != date('now')", (tg,)); conn.commit(); conn.close()
+def reset_daily(tg):
+    conn=sqlite3.connect(DB_PATH)
+    conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now') WHERE telegram_id=? AND (last_request_date IS NULL OR last_request_date != date('now'))", (tg,))
+    conn.commit(); conn.close()
 
 PRICES = {"10":{"requests":10,"price":0.99,"name":"10 requests"},"50":{"requests":50,"price":3.99,"name":"50 requests"},"100":{"requests":100,"price":6.99,"name":"100 requests"},"premium":{"requests":9999,"price":9.99,"name":"Unlimited 30 days"}}
 
