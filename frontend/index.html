@@ -335,7 +335,10 @@
         const btn = document.getElementById('searchBtn'), out = document.getElementById('output');
         btn.disabled = true; btn.textContent = '...'; out.innerHTML = '<span class="c">[~] Scanning...</span>';
         try {
-            const resp = await fetch(API+'/search', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone:raw}) });
+            const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
+    const headers = { 'Content-Type': 'application/json' };
+    if (tg) headers['X-Telegram-ID'] = String(tg);
+    const resp = await fetch(API+'/search', { method:'POST', headers, body:JSON.stringify({phone:raw}) });
             const data = await resp.json(); cr = data; const r = data.result;
             const city = r.hlr.city||r.geo.city||'', region = r.hlr.region||r.geo.region_name||'';
             const area = r.hlr.area||'', country = r.validation.country||r.hlr.country||'';
@@ -380,3 +383,4 @@
 </script>
 </body>
 </html>
+
