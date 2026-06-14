@@ -13,86 +13,211 @@
             --font: 'Courier New', 'Consolas', monospace;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); font-family: var(--font); padding: 20px; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+        /* Матрица на canvas */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+        }
         .search-line {
-            display: flex; border: 1px solid #1a1a1a; margin-bottom: 10px;
+            display: flex;
+            border: 1px solid #1a1a1a;
+            margin-bottom: 16px;
             background: rgba(12,12,12,0.9);
+            backdrop-filter: blur(4px);
+        }
+        .search-line:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(179,0,0,0.3);
         }
         .search-line .prompt {
-            padding: 12px 14px; color: var(--accent); font-weight: bold; font-size: 12px;
+            padding: 12px 14px;
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 12px;
             border-right: 1px solid #1a1a1a;
         }
         .search-line input {
-            flex: 1; padding: 12px 14px; background: transparent; border: none;
-            color: var(--bright); font-family: var(--font); font-size: 13px; outline: none;
+            flex: 1;
+            padding: 12px 14px;
+            background: transparent;
+            border: none;
+            color: var(--bright);
+            font-family: var(--font);
+            font-size: 13px;
+            outline: none;
         }
         .search-line input::placeholder { color: #2a2a2a; }
         .search-line button {
-            padding: 12px 18px; background: transparent; border: none; border-left: 1px solid #1a1a1a;
-            color: var(--accent); font-family: var(--font); font-size: 11px; cursor: pointer;
-            letter-spacing: 2px; text-transform: uppercase;
+            padding: 12px 18px;
+            background: transparent;
+            border: none;
+            border-left: 1px solid #1a1a1a;
+            color: var(--accent);
+            font-family: var(--font);
+            font-size: 11px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transition: 0.2s;
         }
-        .search-line button:hover { background: rgba(179,0,0,0.1); color: #fff; }
-        .search-line button:disabled { color: #333; cursor: not-allowed; }
+        .search-line button:hover {
+            background: rgba(179,0,0,0.2);
+            color: #fff;
+        }
+        .search-line button:disabled {
+            color: #333;
+            cursor: not-allowed;
+        }
         .output {
-            background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
-            padding: 14px 16px; font-size: 10px; line-height: 1.7; color: var(--dim);
-            white-space: pre-wrap; word-break: break-all; min-height: 300px;
+            background: rgba(12,12,12,0.9);
+            border: 1px solid #1a1a1a;
+            padding: 14px 16px;
+            font-size: 10px;
+            line-height: 1.7;
+            color: var(--dim);
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 280px;
+            backdrop-filter: blur(4px);
+            margin-bottom: 16px;
         }
         .output .h { color: var(--accent); font-weight: bold; }
         .output .s { color: var(--bright); }
-        .output .ok { color: var(--green); } .output .warn { color: var(--yellow); }
-        .output .err { color: var(--red); } .output .c { color: #333; }
+        .output .ok { color: var(--green); }
+        .output .warn { color: var(--yellow); }
+        .output .err { color: var(--red); }
+        .output .c { color: #333; }
         .output .loc { color: #fff; font-weight: bold; }
         .graph-panel {
-            margin-top: 12px;
-            background: rgba(12,12,12,0.9); border: 1px solid #1a1a1a;
-            border-radius: 6px; overflow: hidden;
+            background: rgba(12,12,12,0.9);
+            border: 1px solid #1a1a1a;
+            border-radius: 8px;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+            margin-bottom: 16px;
         }
         .graph-header {
-            padding: 8px 12px; border-bottom: 1px solid #1a1a1a;
-            font-size: 9px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
+            padding: 8px 12px;
+            border-bottom: 1px solid #1a1a1a;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-transform: uppercase;
         }
-        .graph-body { padding: 8px; display: flex; justify-content: center; }
-        .graph-svg { width: 100%; max-height: 250px; }
-        .g-node { cursor: pointer; transition: all 0.2s; }
-        .g-node:hover rect { filter: brightness(1.5); }
+        .graph-body {
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            min-height: 200px;
+        }
+        .graph-svg {
+            width: 100%;
+            max-height: 220px;
+        }
+        .g-node { cursor: pointer; transition: 0.2s; }
+        .g-node:hover rect { filter: brightness(1.6); }
         .status-line {
-            display: flex; justify-content: space-between; margin-top: 10px;
-            font-size: 8px; color: #333; letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #555;
+            letter-spacing: 1px;
         }
-        .status-line .on { color: var(--green); animation: statusPulse 1.5s infinite; }
+        .status-line .on { color: var(--green); animation: pulse 1.5s infinite; }
         .status-line .off { color: var(--red); }
-        @keyframes statusPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+        @media (max-width: 700px) {
+            body { padding: 12px; }
+            .graph-body { min-height: 160px; }
+        }
     </style>
 </head>
 <body>
-    <div class="search-line">
-        <span class="prompt">$</span>
-        <input type="text" id="phoneInput" placeholder="+79001234567" autofocus spellcheck="false">
-        <button id="searchBtn" onclick="doSearch()">Execute</button>
-        <button onclick="clearAll()" style="border-left:1px solid #1a1a1a;color:var(--dim);">Clear</button>
-    </div>
-    <div class="output" id="output">
-        <span class="c"># Phone Hunter BETA-1.0</span>
-        <span class="c"># Created by VERNIDOV</span>
-        <span class="c"># READY.</span>
-    </div>
-    <div class="graph-panel">
-        <div class="graph-header">[ GRAPH ]</div>
-        <div class="graph-body">
-            <svg class="graph-svg" id="graphSvg" viewBox="0 0 300 200">
-                <text x="150" y="100" text-anchor="middle" fill="#444" font-size="11" font-family="monospace">No data</text>
-            </svg>
+    <canvas id="matrixCanvas"></canvas>
+    <div class="container">
+        <div class="search-line">
+            <span class="prompt">$</span>
+            <input type="text" id="phoneInput" placeholder="+79001234567" autofocus spellcheck="false">
+            <button id="searchBtn" onclick="doSearch()">Execute</button>
+            <button onclick="clearAll()" style="border-left:1px solid #1a1a1a;color:var(--dim);">Clear</button>
         </div>
-    </div>
-    <div class="status-line">
-        <span id="statusText">? <span class="off">OFFLINE</span></span>
-        <span>phone-hunter.onrender.com</span>
-        <span id="queryCount">0 queries</span>
+        <div class="output" id="output">
+            <span class="c"># Phone Hunter BETA-1.0</span>
+            <span class="c"># Created by VERNIDOV</span>
+            <span class="c"># READY.</span>
+        </div>
+        <div class="graph-panel">
+            <div class="graph-header">[ GRAPH ]</div>
+            <div class="graph-body">
+                <svg class="graph-svg" id="graphSvg" viewBox="0 0 300 200">
+                    <text x="150" y="100" text-anchor="middle" fill="#444" font-size="11" font-family="monospace">No data</text>
+                </svg>
+            </div>
+        </div>
+        <div class="status-line">
+            <span id="statusText">● <span class="off">OFFLINE</span></span>
+            <span>phone-hunter.onrender.com</span>
+            <span id="queryCount">0 queries</span>
+        </div>
     </div>
 
     <script>
+        // ========== МАТРИЦА ==========
+        (function() {
+            const canvas = document.getElementById('matrixCanvas');
+            const ctx = canvas.getContext('2d');
+            let width, height, columns, drops;
+            const chars = '01PHONEHUNTER';
+            const fontSize = 14;
+            function resize() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                columns = Math.floor(width / fontSize);
+                drops = Array(columns).fill(1);
+            }
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = '#b30000';
+                ctx.font = fontSize + 'px monospace';
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > height && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+            }
+            window.addEventListener('resize', () => { resize(); draw(); });
+            resize();
+            setInterval(draw, 40);
+        })();
+
+        // ========== ОСНОВНАЯ ЛОГИКА ==========
         const API = 'https://phone-hunter.onrender.com/api/v1';
         let qc = +(localStorage.getItem('hqc')||'0');
         let cr = null;
@@ -102,47 +227,46 @@
         async function checkStatus() {
             try {
                 const r = await fetch('https://phone-hunter.onrender.com/');
-                se.innerHTML = r.ok ? '? <span class="on">ONLINE</span>' : '? <span class="off">ERROR</span>';
+                se.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>';
             } catch(e) {
-                se.innerHTML = '? <span class="off">OFFLINE</span>';
+                se.innerHTML = '● <span class="off">OFFLINE</span>';
             }
         }
         checkStatus();
         setInterval(checkStatus, 10000);
 
         document.getElementById('phoneInput').addEventListener('keydown', e => {
-            if(e.key==='Enter') doSearch();
+            if(e.key === 'Enter') doSearch();
         });
 
         function drawGraph(phone, country, region, city, operator) {
             const svg = document.getElementById('graphSvg');
-            const sp = phone.length>12 ? phone.slice(0,9)+'...' : phone;
-            const allNodes = [
-                { text: sp, color: '#00ff88' },
-                { text: country||null, color: '#b30000' },
-                { text: region||null, color: '#ffcc00' },
-                { text: city||null, color: '#fff' },
-                { text: operator||null, color: '#ddd' }
-            ];
-            const nodes = allNodes.filter(n => n.text);
-            if(!nodes.length) {
+            const shortPhone = phone.length > 12 ? phone.slice(0,9)+'...' : phone;
+            const nodes = [];
+            if(shortPhone) nodes.push({ text: shortPhone, color: '#00ff88' });
+            if(country) nodes.push({ text: country, color: '#b30000' });
+            if(region) nodes.push({ text: region, color: '#ffcc00' });
+            if(city) nodes.push({ text: city, color: '#fff' });
+            if(operator) nodes.push({ text: operator, color: '#ddd' });
+            if(nodes.length === 0) {
                 svg.innerHTML = '<text x="150" y="100" text-anchor="middle" fill="#444" font-size="11" font-family="monospace">No data</text>';
                 return;
             }
-            const spacing = 180/(nodes.length+1), startY = 30;
+            const spacing = 160 / (nodes.length + 1);
+            const startY = 30;
             let s = '';
             for(let i=0; i<nodes.length-1; i++) {
                 const y1 = startY + i*spacing + 12;
                 const y2 = startY + (i+1)*spacing - 12;
-                s += <line x1="150" y1="" x2="150" y2="" stroke="#333" stroke-width="1.5"/>;
+                s += `<line x1="150" y1="${y1}" x2="150" y2="${y2}" stroke="#333" stroke-width="1.5"/>`;
                 const my = (y1+y2)/2;
-                s += <polygon points="146, 154, 146," fill="#666"/>;
+                s += `<polygon points="146,${my-5} 154,${my} 146,${my+5}" fill="#666"/>`;
             }
             for(let i=0; i<nodes.length; i++) {
                 const y = startY + i*spacing;
-                s += <g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','');">;
-                s += <rect x="50" y="" width="200" height="24" rx="4" fill="#0a0a0a" stroke="" stroke-width="1.5"/>;
-                s += <text x="150" y="" text-anchor="middle" fill="" font-size="10" font-family="Courier New,monospace"></text></g>;
+                s += `<g class="g-node" onmouseover="this.querySelector('rect').setAttribute('fill','#1a0000');this.querySelector('text').setAttribute('fill','#fff');" onmouseout="this.querySelector('rect').setAttribute('fill','#0a0a0a');this.querySelector('text').setAttribute('fill','${nodes[i].color}');">`;
+                s += `<rect x="50" y="${y-12}" width="200" height="24" rx="4" fill="#0a0a0a" stroke="${nodes[i].color}" stroke-width="1.5"/>`;
+                s += `<text x="150" y="${y+4}" text-anchor="middle" fill="${nodes[i].color}" font-size="10" font-family="Courier New,monospace">${nodes[i].text}</text></g>`;
             }
             svg.innerHTML = s;
         }
@@ -172,16 +296,15 @@
             const raw = document.getElementById('phoneInput').value.trim();
             if(!raw) return;
             const btn = document.getElementById('searchBtn'), out = document.getElementById('output');
-            
             const tg = getTelegramId();
             if (!tg) {
                 out.innerHTML = '<span class="err">[!] Unable to get Telegram ID. Please open this Mini App from the bot\'s menu button.</span>';
                 return;
             }
-            
-            btn.disabled = true; btn.textContent = '...'; out.innerHTML = '<span class="c">[~] Scanning...</span>';
+            btn.disabled = true;
+            btn.textContent = '...';
+            out.innerHTML = '<span class="c">[~] Scanning...</span>';
             const headers = { 'Content-Type': 'application/json', 'X-Telegram-ID': String(tg) };
-            
             try {
                 const resp = await fetch(API+'/search', { method:'POST', headers, body:JSON.stringify({phone:raw}) });
                 if (resp.status === 429) {
@@ -189,54 +312,64 @@
                     btn.disabled = false; btn.textContent = 'Execute';
                     return;
                 }
-                const data = await resp.json(); cr = data; const r = data.result;
-                const city = r.hlr.city||r.geo.city||'', region = r.hlr.region||r.geo.region_name||'';
-                const area = r.hlr.area||'', country = r.validation.country||r.hlr.country||'';
-                const operator = r.validation.operator||r.hlr.provider||'';
+                const data = await resp.json();
+                cr = data;
+                const r = data.result;
+                const city = r.hlr.city || r.geo.city || '';
+                const region = r.hlr.region || r.geo.region_name || '';
+                const area = r.hlr.area || '';
+                const country = r.validation.country || r.hlr.country || '';
+                const operator = r.validation.operator || r.hlr.provider || '';
                 drawGraph(r.query.normalized, country, region, city, operator);
-                
                 let log = [];
-                log.push(<span class="h">=== MAIN ===</span>);
-                log.push(<span class="s">Phone:</span>    );
-                log.push(<span class="s">Operator:</span> <span class="loc"></span>);
-                log.push(<span class="s">Country:</span>  );
+                log.push(`<span class="h">═══ MAIN ═══</span>`);
+                log.push(`<span class="s">Phone:</span>    ${r.query.normalized}`);
+                log.push(`<span class="s">Operator:</span> <span class="loc">${operator||'—'}</span>`);
+                log.push(`<span class="s">Country:</span>  ${country||'—'}`);
                 log.push('');
-                log.push(<span class="h">=== LOCATION ===</span>);
-                if(city) log.push(<span class="s">City:</span>     <span class="loc"></span>);
-                if(region) log.push(<span class="s">Region:</span>   <span class="loc"></span>);
-                if(area) log.push(<span class="s">District:</span>  <span class="loc"></span>);
+                log.push(`<span class="h">═══ LOCATION ═══</span>`);
+                if(city) log.push(`<span class="s">City:</span>     <span class="loc">${city}</span>`);
+                if(region) log.push(`<span class="s">Region:</span>   <span class="loc">${region}</span>`);
+                if(area) log.push(`<span class="s">District:</span>  <span class="loc">${area}</span>`);
                 log.push('');
-                const risk=r.risk_score;
-                log.push(<span class="h">=== RISK ===</span>);
-                log.push(<span class="s">Score:</span>    <span class="">/100</span>);
+                const risk = r.risk_score;
+                log.push(`<span class="h">═══ RISK ═══</span>`);
+                log.push(`<span class="s">Score:</span>    <span class="${risk>70?'err':risk>30?'warn':'ok'}">${risk}/100</span>`);
                 log.push('');
-                log.push(<span class="h">=== MESSENGERS ===</span>);
-                for(const[k,v] of Object.entries(r.messengers)) log.push(  : );
+                log.push(`<span class="h">═══ MESSENGERS ═══</span>`);
+                for(const [k,v] of Object.entries(r.messengers)) log.push(`  ${k}: ${v?'<span class="ok">✓</span>':'<span class="err">✗</span>'}`);
                 log.push('');
-                log.push(<span class="h">=== LEAKS ===</span>);
-                if(r.leaks.found_in_leaks&&r.leaks.leaks.length){ for(const l of r.leaks.leaks) log.push(  <span class="warn">?</span> ); }
-                else log.push(  <span class="ok">? CLEAN</span>);
+                log.push(`<span class="h">═══ LEAKS ═══</span>`);
+                if(r.leaks.found_in_leaks && r.leaks.leaks.length) {
+                    for(const l of r.leaks.leaks) log.push(`  <span class="warn">⚠</span> ${l.name}`);
+                } else log.push(`  <span class="ok">✓ CLEAN</span>`);
                 log.push('');
-                log.push(<span class="h">=== FRAUD ===</span>);
-                if(r.fraud.has_complaints) log.push(  <span class="err">?</span> );
-                else log.push(  <span class="ok">? CLEAN</span>);
+                log.push(`<span class="h">═══ FRAUD ═══</span>`);
+                if(r.fraud.has_complaints) log.push(`  <span class="err">⚠</span> ${r.fraud.tags.join(', ')}`);
+                else log.push(`  <span class="ok">✓ CLEAN</span>`);
                 log.push('');
-                log.push(<span class="h">=== LINE ===</span>);
-                log.push(  );
+                log.push(`<span class="h">═══ LINE ═══</span>`);
+                log.push(`  ${r.line_type.is_business ? '<span class="warn">BUSINESS</span>' : (r.line_type.is_mass_activation ? '<span class="warn">MASS ACTIVATION</span>' : '<span class="ok">PERSONAL</span>')}`);
                 log.push('');
-                log.push(<span class="h">=== PORT ===</span>);
-                log.push(  );
+                log.push(`<span class="h">═══ PORT ═══</span>`);
+                log.push(`  ${r.port.ported ? '<span class="warn">PORTED</span>' : '<span class="ok">NATIVE</span>'}`);
                 out.innerHTML = log.join('\n');
-                qc++; localStorage.setItem('hqc', qc); ce.textContent = qc+' queries';
-            } catch(e) { out.innerHTML = '<span class="err">[!] CONNECTION REFUSED</span>'; }
-            btn.disabled = false; btn.textContent = 'Execute';
+                qc++;
+                localStorage.setItem('hqc', qc);
+                ce.textContent = qc+' queries';
+            } catch(e) {
+                out.innerHTML = '<span class="err">[!] CONNECTION REFUSED</span>';
+            }
+            btn.disabled = false;
+            btn.textContent = 'Execute';
         }
 
         function clearAll() {
             document.getElementById('phoneInput').value = '';
             document.getElementById('output').innerHTML = '<span class="c"># Phone Hunter BETA-1.0</span>\n<span class="c"># READY.</span>';
             document.getElementById('graphSvg').innerHTML = '<text x="150" y="100" text-anchor="middle" fill="#444" font-size="11" font-family="monospace">No data</text>';
-            cr = null; document.getElementById('phoneInput').focus();
+            cr = null;
+            document.getElementById('phoneInput').focus();
         }
     </script>
 </body>
