@@ -1,4 +1,4 @@
-import os, uvicorn, sqlite3
+import os, uvicorn, requests
 from fastapi import FastAPI, APIRouter, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -6,6 +6,7 @@ from typing import Optional
 from modules.aggregator import Aggregator
 
 PORT = int(os.environ.get('PORT', 8000))
+BOT_SERVICE_URL = 'https://phone-hunter-bot.onrender.com'
 
 api_app = FastAPI(title="Phone Hunter BETA-1.0", version="1.0")
 api_app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -16,9 +17,24 @@ aggregator = Aggregator()
 class SearchRequest(BaseModel): phone: str
 
 @search_router.post("/search")
-async def search_phone(req: SearchRequest):
+async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header(None)):
     phone = req.phone.strip()
     if not phone: raise HTTPException(400, "Phone number required")
+    
+    if x_telegram_id:
+        try:
+            resp = requests.post(
+                f'{BOT_SERVICE_URL}/check-balance',
+                json={'telegram_id': x_telegram_id},
+                timeout=10
+            )
+            if resp.status_code == 429:
+                raise HTTPException(429, detail="No requests left today")
+        except HTTPException:
+            raise
+        except:
+            pass
+    
     result = await aggregator.full_search(phone)
     return {"query_id":"direct","result":result}
 
