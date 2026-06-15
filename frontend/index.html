@@ -701,10 +701,14 @@
             });
             
             if (balanceResp.status === 429) {
-                // Р РµРґРёСЂРµРєС‚ РЅР° СЃС‚СЂР°РЅРёС†Сѓ 429
-                window.location.href = 'https://phone-hunter-front.onrender.com/429.html';
-                return;
-            }
+    window.location.href = 'https://phone-hunter-front.onrender.com/429.html';
+    return;
+}
+if (balanceResp.status !== 200) {
+    outDiv.innerHTML = '<span class="err">[!] Бот не отвечает. Обновите страницу и попробуйте снова.</span><br><span class="c">Если ошибка повторяется, напишите @vernidov.</span>';
+    btn.disabled = false; btn.textContent = 'SCAN';
+    return;
+}
             
             if (balanceResp.status !== 200) {
                 throw new Error('Balance check failed');
@@ -778,3 +782,4 @@
 </script>
 </body>
 </html>
+
