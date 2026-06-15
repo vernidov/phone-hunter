@@ -1759,7 +1759,7 @@
         window.scrollTo(0,0);
     }
 
-    // ========== API И ЛОГИКА (ИСПРАВЛЕННЫЕ URL И ПРИНУДИТЕЛЬНЫЙ TELEGRAM ID) ==========
+    // ========== API И ЛОГИКА (С РЕДИРЕКТОМ ПРИ 429) ==========
     const API = 'https://phone-hunter.onrender.com/api/v1';
     let qc = +(localStorage.getItem('hqc')||0);
     let cr = null;
@@ -1830,6 +1830,13 @@
                 headers,
                 body: JSON.stringify({ phone: raw })
             });
+            
+            // ===== РЕДИРЕКТ ПРИ 0 ЗАПРОСОВ =====
+            if (resp.status === 429) {
+                window.location.href = '429.html';
+                return;
+            }
+            
             const data = await resp.json();
             cr = data;
             const r = data.result;
