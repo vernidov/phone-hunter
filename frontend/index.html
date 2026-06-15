@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Phone Hunter BETA-1.0</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -41,8 +39,6 @@
             position: relative;
             padding-top: var(--safe-top);
             padding-bottom: var(--safe-bottom);
-            padding-left: var(--safe-left);
-            padding-right: var(--safe-right);
             -webkit-font-smoothing: antialiased;
         }
         .loading-screen {
@@ -520,7 +516,7 @@
 </footer>
 
 <script>
-    // ========== ИНИЦИАЛИЗАЦИЯ (правильный порядок) ==========
+    // ========== ИНИЦИАЛИЗАЦИЯ ==========
     const matrixCanvas = document.getElementById('matrix');
     const matrixCtx = matrixCanvas.getContext('2d');
     const particlesCanvas = document.getElementById('particles');
@@ -630,9 +626,10 @@
         }
     });
 
-    // ========== ОСНОВНАЯ ЛОГИКА С ПРОВЕРКОЙ БАЛАНСА ЧЕРЕЗ БОТА ==========
+    // ========== ОСНОВНАЯ ЛОГИКА ==========
     const API = 'https://phone-hunter.onrender.com/api/v1';
     const BOT_CHECK = 'https://phone-hunter-bot.onrender.com/check-balance';
+    const BOT_ROOT = 'https://phone-hunter-bot.onrender.com';
     let qc = +(localStorage.getItem('hqc')||0);
     let cr = null;
     const statusSpan = document.getElementById('statusText');
@@ -681,6 +678,30 @@
         });
     }
 
+    // ===== ПРОВЕРКА БАЛАНСА ПРИ ЗАГРУЗКЕ =====
+    async function checkBalanceOnLoad() {
+        const tg = '7725956756';
+        try {
+            // Сначала будим бота коротким GET-запросом
+            await fetch(BOT_ROOT, { method: 'HEAD', mode: 'no-cors' });
+            // Даём ему секунду проснуться
+            await new Promise(r => setTimeout(r, 800));
+            const resp = await fetch(BOT_CHECK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ telegram_id: tg })
+            });
+            if (resp.status === 429) {
+                // Баланс 0 – сразу редирект на 429.html
+                window.location.href = 'https://phone-hunter-front.onrender.com/429.html';
+            }
+        } catch(e) {
+            console.log('Balance check on load failed, will retry on scan', e);
+        }
+    }
+    // Запускаем проверку после загрузки страницы
+    setTimeout(checkBalanceOnLoad, 1000);
+
     async function doSearch() {
         const raw = document.getElementById('phoneInput').value.trim();
         if (!raw) return;
@@ -693,7 +714,7 @@
         await typeLine(outDiv, '<span class="c">[~] Checking balance...</span>', 300);
 
         try {
-            const tg = '7725956756'; // твой фиксированный ID
+            const tg = '7725956756';
             const balanceResp = await fetch(BOT_CHECK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -701,17 +722,14 @@
             });
             
             if (balanceResp.status === 429) {
-    window.location.href = 'https://phone-hunter-front.onrender.com/429.html';
-    return;
-}
-if (balanceResp.status !== 200) {
-    outDiv.innerHTML = '<span class="err">[!] ��� �� ��������. �������� �������� � ���������� �����.</span><br><span class="c">���� ������ �����������, �������� @vernidov.</span>';
-    btn.disabled = false; btn.textContent = 'SCAN';
-    return;
-}
+                window.location.href = 'https://phone-hunter-front.onrender.com/429.html';
+                return;
+            }
             
             if (balanceResp.status !== 200) {
-                throw new Error('Balance check failed');
+                await typeLine(outDiv, '<span class="err">[!] Бот не отвечает. Обновите страницу и попробуйте снова.</span>', 200);
+                btn.disabled = false; btn.textContent = 'SCAN';
+                return;
             }
             
             await typeLine(outDiv, '<span class="c">[~] Balance OK, starting search...</span>', 200);
@@ -764,7 +782,7 @@ if (balanceResp.status !== 200) {
             localStorage.setItem('hqc', qc);
             queryCountSpan.textContent = qc + ' queries';
         } catch(e) {
-            await typeLine(outDiv, '<span class="err">[!] CONNECTION REFUSED</span>', 1500);
+            await typeLine(outDiv, '<span class="err">[!] CONNECTION REFUSED. Повторите через минуту.</span>', 1500);
         }
         btn.disabled = false;
         btn.textContent = 'SCAN';
@@ -782,4 +800,3 @@ if (balanceResp.status !== 200) {
 </script>
 </body>
 </html>
-
