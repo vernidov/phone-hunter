@@ -1,6 +1,7 @@
 import os, asyncio, sqlite3, requests, json, traceback
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
@@ -78,9 +79,33 @@ def start_web():
     HTTPServer(('0.0.0.0', PORT), Handler).serve_forever()
 Thread(target=start_web, daemon=True).start()
 
+# ========== ЕЖЕДНЕВНЫЙ СБРОС ЗАПРОСОВ В 3:00 МСК ==========
+async def daily_reset():
+    """Обнуляет requests_used для всех пользователей каждый день в 03:00 по московскому времени."""
+    while True:
+        now = datetime.utcnow() + timedelta(hours=3)  # UTC+3 = MSK
+        target = now.replace(hour=3, minute=0, second=0, microsecond=0)
+        if now >= target:
+            target += timedelta(days=1)
+        wait_seconds = (target - now).total_seconds()
+        await asyncio.sleep(wait_seconds)
+
+        # Сброс
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("UPDATE users SET requests_used = 0, last_request_date = date('now')")
+        conn.commit()
+        conn.close()
+        print(f"[DAILY RESET] Все запросы обнулены в {datetime.utcnow()+timedelta(hours=3)} MSK")
+
+# ========== КОМАНДЫ БОТА ==========
 @dp.message(Command('start'))
 async def start(msg: types.Message):
-    u = msg.from_user; create_user(u.id, u.username or '', u.full_name or '')
+    u = msg.from_user
+    create_user(u.id, u.username or '', u.full_name or '')
+    # Проверяем, пришёл ли пользователь по ссылке /start buy
+    if len(msg.text.split()) > 1 and msg.text.split()[1] == 'buy':
+        await shop(msg)  # Открыть меню покупки сразу
+        return
     await msg.answer(f'Hi, *{u.first_name or "user"}*!\n\n*Phone Hunter BETA-1.0*\n5 free requests\nTON / USDT via CryptoBot', parse_mode='Markdown',
         reply_markup=ReplyKeyboardMarkup(keyboard=[
             [KeyboardButton(text='Open Phone Hunter', web_app=WebAppInfo(url=WEBAPP_URL))],
@@ -89,9 +114,11 @@ async def start(msg: types.Message):
 
 @dp.message(F.text == 'Profile')
 async def profile(msg: types.Message):
-    u = msg.from_user; create_user(u.id, u.username or '', u.full_name or '')
+    u = msg.from_user
+    create_user(u.id, u.username or '', u.full_name or '')
     reset_daily(u.id)
-    d = get_user(u.id); rem = d[3]-d[4] if d else 5
+    d = get_user(u.id)
+    rem = d[3] - d[4] if d else 5
     await msg.answer(f'*Profile*\n\nName: {u.full_name}\nRequests: *{rem}*\nStatus: {"Premium" if d and d[5] else "Free"}', parse_mode='Markdown')
 
 @dp.message(F.text == 'Buy requests')
@@ -112,25 +139,27 @@ async def shop(msg: types.Message):
 @dp.message(Command('give'))
 async def give(msg: types.Message):
     if msg.from_user.id != ADMIN_ID:
-        await msg.answer("? You are not admin")
+        await msg.answer("❌ You are not admin")
         return
     parts = msg.text.split()
     if len(parts) != 3:
-        await msg.answer("? Format: /give TELEGRAM_ID AMOUNT")
+        await msg.answer("❌ Format: /give TELEGRAM_ID AMOUNT")
         return
     try:
         target_id = int(parts[1])
         amount = int(parts[2])
         add_requests(target_id, amount)
-        await msg.answer(f"? Added {amount} requests to user {target_id}")
-        await bot.send_message(target_id, f"?? Admin gave you *{amount}* requests!", parse_mode='Markdown')
+        await msg.answer(f"✅ Added {amount} requests to user {target_id}")
+        await bot.send_message(target_id, f"🎁 Admin gave you *{amount}* requests!", parse_mode='Markdown')
     except Exception as e:
-        await msg.answer(f"? Error: {e}")
+        await msg.answer(f"❌ Error: {e}")
 
 @dp.message(Command('admin'))
 async def admin(msg: types.Message):
     if msg.from_user.id != ADMIN_ID: return
-    conn = sqlite3.connect(DB_PATH); users = conn.execute('SELECT * FROM users ORDER BY rowid DESC LIMIT 20').fetchall(); conn.close()
+    conn = sqlite3.connect(DB_PATH)
+    users = conn.execute('SELECT * FROM users ORDER BY rowid DESC LIMIT 20').fetchall()
+    conn.close()
     txt = '*Admin panel*\n\n'
     for u in users:
         txt += f'ID: {u[0]} | @{u[1] or "none"} | Requests: {u[3]-u[4]}\n'
@@ -138,8 +167,9 @@ async def admin(msg: types.Message):
 
 async def main():
     init_db()
+    # Запускаем фоновую задачу ежедневного сброса
+    asyncio.create_task(daily_reset())
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
     asyncio.run(main())
-
