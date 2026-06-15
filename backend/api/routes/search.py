@@ -7,7 +7,7 @@ import requests, os
 
 router = APIRouter()
 aggregator = Aggregator()
-BOT_SERVICE_URL = 'https://phone-hunter-crypto-bot.onrender.com'
+BOT_SERVICE_URL = 'https://phone-hunter-bot.onrender.com'
 
 class SearchRequest(BaseModel):
     phone: str
