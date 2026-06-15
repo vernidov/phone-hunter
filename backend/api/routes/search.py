@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 from modules.aggregator import Aggregator
