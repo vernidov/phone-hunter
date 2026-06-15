@@ -1759,8 +1759,9 @@
         window.scrollTo(0,0);
     }
 
-    // ========== API И ЛОГИКА (С РЕДИРЕКТОМ ПРИ 429) ==========
+    // ========== API И ЛОГИКА (ПРОВЕРКА БАЛАНСА ЧЕРЕЗ БОТА) ==========
     const API = 'https://phone-hunter.onrender.com/api/v1';
+    const BOT_CHECK = 'https://phone-hunter-bot.onrender.com/check-balance';
     let qc = +(localStorage.getItem('hqc')||0);
     let cr = null;
     const statusSpan = document.getElementById('statusText');
@@ -1818,25 +1819,40 @@
         btn.textContent = '...';
         outDiv.innerHTML = '';
         await typeLine(outDiv, '<span class="c">[~] Initializing scan...</span>', 0);
-        await typeLine(outDiv, '<span class="c">[~] HLR lookup...</span>', 400);
-        await typeLine(outDiv, '<span class="c">[~] Leak databases...</span>', 800);
-        await typeLine(outDiv, '<span class="c">[~] Fraud analysis...</span>', 1200);
+        await typeLine(outDiv, '<span class="c">[~] Checking balance...</span>', 300);
+
         try {
-            // ===== ПРИНУДИТЕЛЬНЫЙ TELEGRAM ID (ТВОЙ) =====
-            const tg = '7725956756';
+            // === 1. ПРОВЕРКА БАЛАНСА ЧЕРЕЗ БОТА ===
+            const tg = '7725956756'; // твой фиксированный ID
+            const balanceResp = await fetch(BOT_CHECK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ telegram_id: tg })
+            });
+            
+            if (balanceResp.status === 429) {
+                // Запросов нет – редирект на страницу ошибки
+                window.location.href = '429.html';
+                return;
+            }
+            
+            if (balanceResp.status !== 200) {
+                throw new Error('Balance check failed');
+            }
+            
+            // Баланс есть – продолжаем
+            await typeLine(outDiv, '<span class="c">[~] Balance OK, starting search...</span>', 200);
+            await typeLine(outDiv, '<span class="c">[~] HLR lookup...</span>', 400);
+            await typeLine(outDiv, '<span class="c">[~] Leak databases...</span>', 800);
+            await typeLine(outDiv, '<span class="c">[~] Fraud analysis...</span>', 1200);
+            
+            // === 2. ВЫПОЛНЯЕМ ПОИСК ЧЕРЕЗ API (без проверки баланса) ===
             const headers = { 'Content-Type': 'application/json', 'X-Telegram-ID': tg };
             const resp = await fetch(API + '/search', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({ phone: raw })
             });
-            
-            // ===== РЕДИРЕКТ ПРИ 0 ЗАПРОСОВ =====
-            if (resp.status === 429) {
-                window.location.href = '429.html';
-                return;
-            }
-            
             const data = await resp.json();
             cr = data;
             const r = data.result;
@@ -1845,6 +1861,7 @@
             const country = r.validation.country || r.hlr.country || '';
             const operator = r.validation.operator || r.hlr.provider || '';
             drawGraph(r.query.normalized, country, region, city, operator);
+            
             let lines = [];
             lines.push(`<span class="h">═══ MAIN ═══</span>`);
             lines.push(`<span class="s">Phone:</span>    ${r.query.normalized}`);
@@ -1880,11 +1897,15 @@
         btn.disabled = false;
         btn.textContent = 'SCAN';
     }
+
     function clearAll() {
         document.getElementById('phoneInput').value = '';
         document.getElementById('outputContent').innerHTML = '<span class="c"># Phone Hunter BETA-1.0</span><br><span class="c"># Ready.</span><span class="cursor"></span>';
         document.getElementById('graphSvg').innerHTML = '<text x="140" y="210" text-anchor="middle" fill="#333" font-size="10">No data</text>';
+        cr = null;
+        document.getElementById('phoneInput').focus();
     }
+
     document.getElementById('phoneInput').addEventListener('keypress', e => { if (e.key === 'Enter') doSearch(); });
 
     // Mobile menu toggle
