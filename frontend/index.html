@@ -1810,7 +1810,7 @@
     checkBalanceOnLoad();
 
     // ===== ОСНОВНАЯ ЛОГИКА (API, ГРАФ, ПОИСК) =====
-    const API = 'https://phone-hunter1.onrender.com/api/v1';
+    const API = 'https://phone-hunter.onrender.com/api/v1';
     let qc = +(localStorage.getItem('hqc')||'0');
     let cr = null;
     const se = document.getElementById('statusText'), ce = document.getElementById('queryCount');
@@ -1818,7 +1818,7 @@
     
     async function cs() {
         try { 
-            const r = await fetch('https://vernidov-phone-hunter.onrender.com/'); 
+            const r = await fetch('https://phone-hunter.onrender.com/');
             se.innerHTML = r.ok ? '● <span class="on">ONLINE</span>' : '● <span class="off">ERROR</span>'; 
         } catch(e) { 
             se.innerHTML = '● <span class="off">OFFLINE</span>'; 
