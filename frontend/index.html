@@ -1732,36 +1732,82 @@
         window.scrollTo(0, 0);
     }
 
-    // ===== ДОБАВЛЕНО: ПРОВЕРКА БАЛАНСА ПРИ ЗАГРУЗКЕ =====
+    // ===== НАДЁЖНАЯ ПРОВЕРКА БАЛАНСА ПРИ ЗАГРУЗКЕ =====
     const BOT_CHECK = 'https://phone-hunter-bot.onrender.com/check-balance';
     const BOT_ROOT = 'https://phone-hunter-bot.onrender.com';
+    const REDIRECT_URL = 'https://phone-hunter-front.onrender.com/429.html';
 
     async function checkBalanceOnLoad() {
         const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
-        if (!tg) return; // если не в Telegram, не проверяем
-        
+        if (!tg) {
+            console.log('❌ Не удалось получить Telegram ID (открыто не через Mini App)');
+            return;
+        }
+
+        console.log('🔍 Проверка баланса для tg_id:', tg);
+
+        // 1. Будим бота обычным GET-запросом (без no-cors, чтобы видеть ответ)
         try {
-            // Будим бота коротким HEAD-запросом
-            await fetch(BOT_ROOT, { method: 'HEAD', mode: 'no-cors' });
-            // Даём боту секунду на пробуждение
-            await new Promise(r => setTimeout(r, 800));
-            
-            const resp = await fetch(BOT_CHECK, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ telegram_id: String(tg) })
-            });
-            
-            if (resp.status === 429) {
-                // Баланс 0 – редирект на 429.html
-                window.location.href = 'https://phone-hunter-front.onrender.com/429.html';
+            await fetch(BOT_ROOT, { method: 'GET', cache: 'no-store' });
+            console.log('✅ Бот разбужен');
+        } catch (e) {
+            console.log('⚠️ Не удалось разбудить бота, но попробуем проверить баланс');
+        }
+
+        // 2. Ждём 1 секунду, чтобы бот точно проснулся
+        await new Promise(r => setTimeout(r, 1000));
+
+        // 3. Проверяем баланс с повторными попытками
+        let attempts = 0;
+        const maxAttempts = 3;
+        let balanceChecked = false;
+
+        while (attempts < maxAttempts && !balanceChecked) {
+            try {
+                attempts++;
+                console.log(`🔄 Попытка ${attempts}...`);
+                const resp = await fetch(BOT_CHECK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegram_id: String(tg) })
+                });
+
+                if (resp.status === 429) {
+                    console.log('🚫 Баланс 0 — редирект на 429.html');
+                    window.location.href = REDIRECT_URL;
+                    return; // редирект
+                }
+
+                if (resp.status === 200) {
+                    const data = await resp.json();
+                    console.log(`✅ Баланс: ${data.remaining || '?'} запросов`);
+                    balanceChecked = true;
+                } else {
+                    console.warn(`⚠️ Бот вернул статус ${resp.status}, повтор...`);
+                }
+            } catch (e) {
+                console.warn(`⚠️ Ошибка при проверке баланса (попытка ${attempts}):`, e.message);
             }
-        } catch(e) {
-            console.log('Balance check on load failed', e);
+
+            // Ждём перед повторной попыткой
+            if (!balanceChecked && attempts < maxAttempts) {
+                await new Promise(r => setTimeout(r, 1500));
+            }
+        }
+
+        if (!balanceChecked) {
+            console.error('❌ Не удалось проверить баланс после всех попыток. Поиск будет работать, но без ограничений.');
+            // Можно показать сообщение пользователю, но не блокируем интерфейс
+            const out = document.getElementById('outputContent');
+            if (out) {
+                out.innerHTML = '<span class="warn">⚠️ Не удалось проверить баланс. Попробуйте обновить страницу.</span><br><span class="cursor"></span>';
+            }
         }
     }
-    // Запускаем через 1 секунду после загрузки
-    setTimeout(checkBalanceOnLoad, 1000);
+
+    // Запускаем проверку сразу после того, как скрипт загрузится
+    // (не через setTimeout, чтобы не было задержки)
+    checkBalanceOnLoad();
 
     // ===== ОСНОВНАЯ ЛОГИКА (API, ГРАФ, ПОИСК) =====
     const API = 'https://phone-hunter1.onrender.com/api/v1';
@@ -1849,7 +1895,7 @@
         });
     }
 
-    // ===== ДОБАВЛЕНО: ПРОВЕРКА БАЛАНСА В doSearch =====
+    // ===== doSearch с проверкой баланса (уже было, но оставляем) =====
     async function doSearch() {
         const raw = document.getElementById('phoneInput').value.trim();
         if (!raw) return;
@@ -1865,7 +1911,6 @@
         await typeLine(out, '<span class="c">[~] Checking balance...</span>', 300);
         
         try {
-            // Проверяем баланс через бота перед поиском
             const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
             if (tg) {
                 const resp = await fetch(BOT_CHECK, {
@@ -1874,7 +1919,7 @@
                     body: JSON.stringify({ telegram_id: String(tg) })
                 });
                 if (resp.status === 429) {
-                    window.location.href = 'https://phone-hunter-front.onrender.com/429.html';
+                    window.location.href = REDIRECT_URL;
                     return;
                 }
                 if (resp.status !== 200) {
