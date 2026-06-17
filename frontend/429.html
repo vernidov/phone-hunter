@@ -1,476 +1,426 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
-    <title>ACCESS DENIED // PHONE HUNTER</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-0: #000000;
-            --bg-1: #050505;
-            --accent-0: #ffffff;
-            --accent-glow: rgba(255, 255, 255, 0.4);
-            --text-0: #ffffff;
-            --text-1: #aaaaaa;
-            --text-2: #555555;
-            --border: rgba(255, 255, 255, 0.15);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>429 — Баланс исчерпан | Phone Hunter</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg:     #080c10;
+  --red:    #ff2d55;
+  --red2:   #ff6080;
+  --cyan:   #00f5ff;
+  --yellow: #ffd60a;
+  --green:  #39ff14;
+  --text:   #c9d1d9;
+  --text2:  #8b949e;
+  --border: rgba(255,45,85,.2);
+  --font:   'SF Mono','Fira Code','Consolas',monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  background: var(--bg);
+  font-family: var(--font);
+  color: var(--text);
+  overflow: hidden;
+}
+body { display: flex; align-items: center; justify-content: center; }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body { 
-            font-family: 'JetBrains Mono', monospace;
-            background: var(--bg-0); 
-            color: var(--text-0); 
-            overflow: hidden;
-            height: 100vh;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
+/* ── CANVAS ── */
+#canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: .08;
+  pointer-events: none;
+}
 
-        #matrix {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: -3;
-            opacity: 0.12;
-        }
+/* ── SCAN LINES ── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255,45,85,.03) 2px,
+    rgba(255,45,85,.03) 4px
+  );
+}
 
-        .scanlines {
-            position: fixed;
-            inset: 0;
-            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.3), rgba(0,0,0,0.3) 1px, transparent 1px, transparent 2px);
-            z-index: 10;
-            pointer-events: none;
-        }
+/* ── VIGNETTE ── */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(8,12,16,.85) 100%);
+}
 
-        .noise {
-            position: fixed;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
-            opacity: 0.03;
-            mix-blend-mode: overlay;
-            z-index: -1;
-            pointer-events: none;
-        }
+/* ── MAIN CARD ── */
+.card {
+  position: relative;
+  z-index: 2;
+  width: calc(100% - 32px);
+  max-width: 380px;
+  padding: 28px 24px;
+  background: rgba(13,17,23,.95);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  text-align: center;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 1px rgba(255,45,85,.1),
+    0 0 60px rgba(255,45,85,.12),
+    0 0 120px rgba(255,45,85,.06),
+    inset 0 1px 0 rgba(255,255,255,.05);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
+  border-radius: 1px;
+}
 
-        .container {
-            text-align: center;
-            padding: 20px;
-            max-width: 900px;
-            width: 100%;
-            z-index: 5;
-            position: relative;
-        }
+/* ── ICON ── */
+.icon-wrap {
+  position: relative;
+  width: 80px; height: 80px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--red);
+  animation: ring-pulse 2s ease-in-out infinite;
+}
+.icon-ring2 {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,45,85,.3);
+  animation: ring-pulse 2s ease-in-out infinite .4s;
+}
+@keyframes ring-pulse {
+  0%, 100% { opacity: .7; transform: scale(1); }
+  50%       { opacity: .2; transform: scale(1.06); }
+}
+.icon-inner {
+  width: 56px; height: 56px;
+  background: rgba(255,45,85,.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border: 1px solid rgba(255,45,85,.3);
+}
 
-        .ascii-wrapper {
-            display: inline-block;
-            position: relative;
-            margin-bottom: 30px;
-            animation: containerReveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-            transform: translateY(20px);
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .ascii-wrapper::-webkit-scrollbar { display: none; }
-        .ascii-wrapper { -ms-overflow-style: none; scrollbar-width: none; }
+/* ── CODE BADGE ── */
+.code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,45,85,.1);
+  border: 1px solid rgba(255,45,85,.3);
+  border-radius: 4px;
+  padding: 2px 10px;
+  font-size: 10px;
+  color: var(--red);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
 
-        .ascii-art {
-            font-size: clamp(3px, 1.1vw, 6px);
-            line-height: 1.1;
-            color: var(--accent-0);
-            white-space: pre;
-            text-shadow: 0 0 8px var(--accent-glow);
-            animation: artBreathe 5s ease-in-out infinite, artSubtleGlitch 10s infinite;
-            display: inline-block;
-        }
+/* ── HEADING ── */
+.heading {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--red);
+  letter-spacing: .03em;
+  margin-bottom: 6px;
+  text-shadow: 0 0 20px rgba(255,45,85,.5);
+  animation: flicker 4s infinite;
+}
+@keyframes flicker {
+  0%,94%,96%,100% { opacity: 1; }
+  95%              { opacity: .6; }
+}
+.subheading {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+.subheading strong { color: var(--text); }
 
-        @keyframes artBreathe {
-            0%, 100% { text-shadow: 0 0 8px var(--accent-glow); opacity: 0.9; }
-            50% { text-shadow: 0 0 15px var(--accent-glow); opacity: 1; }
-        }
+/* ── TERMINAL BLOCK ── */
+.terminal {
+  background: #050a0f;
+  border: 1px solid rgba(255,45,85,.2);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.term-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  background: rgba(255,45,85,.05);
+  border-bottom: 1px solid rgba(255,45,85,.15);
+}
+.dot { width: 9px; height: 9px; border-radius: 50%; }
+.dot-r { background: #ff5f57; }
+.dot-y { background: #ffbd2e; }
+.dot-g { background: #28ca41; }
+.term-body { padding: 10px 12px; font-size: 11px; line-height: 1.8; }
+.tl-r  { color: var(--red); }
+.tl-c  { color: var(--cyan); }
+.tl-d  { color: var(--text2); }
+.tl-y  { color: var(--yellow); }
+.cursor {
+  display: inline-block;
+  width: 7px; height: 13px;
+  background: var(--red);
+  border-radius: 1px;
+  animation: blink .8s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
 
-        @keyframes artSubtleGlitch {
-            0%, 96%, 100% { transform: translate(0); }
-            97% { transform: translate(-1px, 0.5px); }
-            98% { transform: translate(1px, -0.5px); }
-            99% { transform: translate(0); }
-        }
+/* ── PROGRESS ── */
+.progress-wrap {
+  margin-bottom: 20px;
+}
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text2);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.progress-bar {
+  height: 4px;
+  background: rgba(255,45,85,.15);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255,45,85,.2);
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--red);
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--red);
+}
 
-        @keyframes containerReveal {
-            to { opacity: 1; transform: translateY(0); }
-        }
+/* ── BUTTONS ── */
+.btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  border: none;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
+}
+.btn:active { transform: scale(.96); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--red), #c9102e);
+  color: #fff;
+  box-shadow: 0 0 30px rgba(255,45,85,.35), 0 4px 12px rgba(0,0,0,.4);
+}
+.btn-primary:hover { box-shadow: 0 0 45px rgba(255,45,85,.5), 0 4px 12px rgba(0,0,0,.4); }
+.btn-secondary {
+  background: rgba(255,255,255,.05);
+  color: var(--text2);
+  border: 1px solid rgba(255,255,255,.1);
+}
+.btn-secondary:hover { background: rgba(255,255,255,.08); color: var(--text); }
 
-        .error-code {
-            font-size: 11px;
-            color: var(--text-2);
-            letter-spacing: 4px;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            opacity: 0;
-            animation: fadeIn 0.5s 0.5s forwards;
-        }
+/* ── DIVIDER ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.divider-line { flex: 1; height: 1px; background: rgba(255,255,255,.07); }
+.divider-text { font-size: 10px; color: var(--text2); letter-spacing: .08em; }
 
-        .main-title {
-            font-size: clamp(36px, 7vw, 72px);
-            font-weight: 800;
-            letter-spacing: -2px;
-            margin-bottom: 20px;
-            position: relative;
-            display: inline-block;
-            opacity: 0;
-            animation: fadeIn 0.5s 0.8s forwards;
-        }
-
-        .subtitle {
-            font-size: clamp(14px, 2vw, 18px);
-            color: var(--text-1);
-            line-height: 1.6;
-            margin-bottom: 40px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            opacity: 0;
-            animation: fadeIn 0.5s 1.1s forwards;
-        }
-
-        .subtitle strong {
-            color: var(--accent-0);
-            font-weight: 700;
-            border-bottom: 1px solid var(--accent-0);
-        }
-
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-
-        .terminal-log {
-            background: var(--bg-1);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 20px;
-            text-align: left;
-            font-size: 12px;
-            color: var(--text-2);
-            margin-bottom: 40px;
-            max-width: 550px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            opacity: 0;
-            animation: fadeIn 0.5s 1.4s forwards;
-        }
-
-        .log-line {
-            margin-bottom: 6px;
-            opacity: 0;
-            transform: translateX(-10px);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .log-line.visible {
-            animation: slideIn 0.3s forwards;
-        }
-
-        @keyframes slideIn {
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .cursor {
-            display: inline-block;
-            width: 8px;
-            height: 14px;
-            background: var(--accent-0);
-            animation: blink 1s infinite;
-            vertical-align: middle;
-        }
-
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-        }
-
-        .actions {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-            opacity: 0;
-            animation: fadeIn 0.5s 2.5s forwards;
-        }
-
-        .btn {
-            position: relative;
-            padding: 16px 36px;
-            border-radius: 4px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            min-height: 52px;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid transparent;
-        }
-
-        .btn-primary {
-            background: var(--accent-0);
-            color: var(--bg-0);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
-        }
-
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-primary:hover::before {
-            left: 100%;
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-1);
-            border: 1px solid var(--border);
-        }
-
-        .btn-secondary::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: var(--accent-0);
-            transform: scaleX(0);
-            transform-origin: right;
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: -1;
-        }
-
-        .btn-secondary:hover {
-            color: var(--bg-0);
-            border-color: var(--accent-0);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary:hover::before {
-            transform: scaleX(1);
-            transform-origin: left;
-        }
-
-        .footer {
-            position: absolute;
-            bottom: 30px;
-            font-size: 10px;
-            color: var(--text-2);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            opacity: 0;
-            animation: fadeIn 1s 3s forwards;
-        }
-
-        @media (max-width: 600px) {
-            .ascii-art { font-size: clamp(2.5px, 1.3vw, 5px); }
-            .actions { flex-direction: column; width: 100%; max-width: 320px; margin: 0 auto; }
-            .btn { width: 100%; justify-content: center; }
-            .terminal-log { font-size: 11px; padding: 16px; }
-        }
-
-        @media (hover: none) and (pointer: coarse) {
-            .btn-primary:hover, .btn-secondary:hover { transform: none; }
-            .btn-primary:active, .btn-secondary:active { transform: scale(0.98); }
-        }
-    </style>
+/* ── FOOTER ── */
+.footer {
+  margin-top: 18px;
+  font-size: 9px;
+  color: rgba(139,148,158,.4);
+  letter-spacing: .1em;
+  line-height: 1.8;
+}
+</style>
 </head>
 <body>
 
-    <canvas id="matrix"></canvas>
-    <div class="noise"></div>
-    <div class="scanlines"></div>
+<canvas id="canvas"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
 
-    <div class="container">
-        <div class="ascii-wrapper">
-            <pre class="ascii-art">
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⡤⢤⣄⣀⣀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⣿⣷⣿⣿⠅⠀⣠⣴⣺⣿⣶⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⣿⣿⣿⣿⣾⣿⣿⣿⣿⣿⣿⡿⣻⣿⣿⣶⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⡿⠛⠛⢿⣿⣿⣿⣿⣿⣿⣭⣾⣿⣿⣿⣿⣿⣿⣭⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠘⠀⠀⠀⠀⠀⠈⠙⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣟⡛⠛⠒⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣽⣯⣟⣿⣁⣉⣉⣀⣉⡙⠻⠿⣿⠿⠷⠦⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⡤⠤⠔⠒⠒⣋⣛⣭⡥⠉⠂⣒⣒⣒⣀⣈⣍⣩⣉⣝⣛⣒⣶⠤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡤⠔⠚⢉⣁⣤⣄⣶⡶⠿⣙⣮⣭⣶⡾⠿⣿⣿⣽⣿⣿⣽⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣽⣶⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⣤⣒⣦⢠⠖⠋⣁⣤⡖⢼⡻⠜⣃⣭⣴⡾⣟⣹⣥⡵⠶⠟⠛⠛⠉⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠛⠛⠳⠤⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⣾⡏⣽⣿⣿⣭⣤⡀⢠⣴⣾⢿⣿⡯⠶⠛⠋⠉⠀⠀⠀⢀⣀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⢸⣷⣸⣿⠋⠀⠀⢹⢟⡻⠗⠋⠁⠀⠀⠀⠀⠀⠀⢀⣾⣿⣶⣿⣯⣍⡛⠿⢖⣲⡶⢤⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠿⣾⣿⠃⠀⠀⠘⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣿⣷⣄⠀⠀⠀⠠⠭⣙⠶⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢿⣹⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡾⣹⣿⠿⠋⠉⠉⠉⠉⠳⠿⢷⣄⠀⠀⠀⠀⠉⠈⢝⢦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢸⡏⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣞⣵⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣧⠀⠀⠀⠀⠀⠀⠑⡷⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⣷⢻⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣾⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣬⢹⣷⠀⠀⠀⠀⠀⠀⠈⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⢹⡾⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⢸⣿⣿⢃⣀⣀⡀⣄⠀⢠⣴⣶⣶⣌⢻⣿⣿⣇⠀⠀⠀⠀⠀⠀⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠈⣿⢿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣿⣿⣿⣿⣿⣷⢹⠂⣿⣿⣿⣿⣿⡎⣿⣿⣿⠀⢀⠇⠀⠀⡆⢀⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⢻⣼⣇⠀⠀⠀⠀⠀⠀⠀⠀⢀⡏⣿⡟⣿⣿⣿⠏⣘⡀⠸⢿⣿⣿⣿⣳⣿⢹⣿⠀⡎⡇⢿⣜⢼⣾⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠸⣇⣿⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⣿⣧⣈⣭⡵⢸⣿⣿⡜⢶⣮⣭⣴⣟⣵⣿⣿⠘⣢⣧⣆⣷⡼⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⢿⣸⡇⠀⠀⠀⠀⠀⠀⠀⣿⣻⣿⣿⣿⣿⣇⣘⢋⢛⢃⠘⣯⣿⣿⣷⣷⣿⣿⡆⢱⣿⣽⢻⣽⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⢸⣏⣷⠀⠀⠀⠀⠀⠀⠀⢿⣿⣿⣿⣿⣿⣿⢿⢼⢼⢿⣾⣿⣿⣿⣿⢿⣿⣿⣿⣦⢻⡟⣾⣿⣯⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⢻⡆⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⡿⣹⢾⢾⣼⣞⣿⣿⣿⣧⣿⣿⣿⣿⡿⣜⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⡟⣧⠀⠀⠀⠀⠀⢀⣸⣿⣿⣿⣿⣿⡗⠜⠹⠏⠟⠋⢚⣡⣾⣿⣿⣿⠿⠋⡾⢫⣿⣿⠋⠙⢿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⢿⡀⠀⠀⣀⣤⣾⠁⠙⢿⣿⣿⣿⣿⣶⢶⢶⢶⢾⡿⡿⣿⣿⡿⡟⠀⠀⡁⡜⠃⣿⡄⠀⠀⠙⢿⣷⣤⡀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣿⣇⡤⠚⠉⠉⠻⣦⡀⠈⠻⣿⣿⢿⣿⣿⢸⢸⣸⣷⣿⡿⡿⠃⠀⠀⣜⡜⠇⡾⡫⡂⡀⣠⠠⣻⡿⠻⢿⣦⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣼⣷⣿⠀⠀⠀⠀⠀⠈⢇⠀⠀⠹⣿⣧⡟⣻⣿⣿⣿⣿⡿⠋⠀⠀⣠⣸⡷⣭⠅⠁⡇⣡⣎⣽⡔⠃⠀⠀⠀⣿⣧⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⢀⣠⣞⠃⠀⢿⣾⣇⡤⡀⢀⣄⢢⡪⣳⡀⠀⠙⣻⣻⣽⢺⣿⣿⣿⢁⠄⢀⣞⣿⣿⣻⣿⣷⣿⣾⣿⡿⣀⣀⡀⠀⠀⠀⢻⣿⣷⡄⠀⠀⠀
-⠀⠀⠀⢀⣤⡶⢛⣻⣿⣷⣦⣸⣿⣷⣿⣯⣮⣫⡓⣝⣻⣷⠄⠀⠈⣷⡖⣧⢿⣿⣯⣿⡿⣿⣼⡿⠟⠋⠉⠁⠀⠉⠛⠿⣷⣶⣶⡦⠀⠀⠸⡯⣿⣿⣆⠀⠀
-⠀⠀⣠⠟⠁⠀⠀⠀⠈⠉⠉⢹⠟⠛⣛⣿⣿⣿⣿⣾⣟⣾⣿⣢⡌⣷⣿⣿⢿⣿⣻⣿⣿⣿⣶⡄⠀⠀⠀⠀⠀⠀⠀⠀⠈⢻⣿⣶⣦⡄⠀⠑⠈⣿⣿⣆⠀
-⠀⣰⠃⠀⠀⠀⠀⠀⠀⡠⠒⣵⣶⠿⠟⠙⢻⠿⣿⣿⣿⣿⣿⣳⡿⣻⣿⣧⣾⣿⡿⣿⣿⢿⣿⣿⣶⣄⠀⠀⠀⠀⠀⠀⡀⠀⢿⣿⡿⣿⣷⣤⣦⢾⣿⣿⡄
-⠀⣿⣄⢀⢀⠀⠀⠀⢸⣗⡫⢟⣎⣭⣤⠾⣿⣶⣴⣹⣿⣿⣿⣿⣿⣿⣿⣿⣻⣿⣷⣿⣽⣻⣿⣿⣿⣿⣷⣄⡀⠀⠈⡼⣵⡆⠘⣿⣿⡌⢻⣷⣪⢾⣿⣿⣇
-⢸⡏⣹⢘⡼⡆⠀⢸⣼⣷⠿⠿⢛⣛⣡⣀⣹⣩⣛⢿⣿⣿⣿⣿⣿⣿⣿⠿⢛⣽⣾⣿⣿⢯⡿⣿⣿⣿⣿⣿⣯⢾⣀⡓⣿⣿⣷⢿⣿⣿⡀⠙⣷⣿⣿⣿⣿
-⠘⣧⡟⣸⢷⣇⠀⢰⣿⣿⣿⣿⣟⣿⡿⣻⡿⠟⣛⣻⣿⣿⣿⣿⣿⠟⣡⣾⣿⢟⣿⡿⣱⣿⣽⣿⣿⣿⣿⣿⣿⣯⣯⣷⣿⠏⣯⣾⣿⣿⣷⣾⣿⣿⣿⣿⣿
-⠀⣿⣵⣷⣯⣿⣆⠰⣿⣿⣿⣷⣾⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠉⠉⠁⠈⡉⣠⣬⣿⣿⣿⣿⣿⣿⣿⣿⣿⢻⠛⣬⡀⣿⣿⡿⣿⣿⣿⣿⣿⣿⣿⣿
-⠀⠸⣿⣿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣴⣤⣷⡇⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠆⣿⣇⣿⣾⣹⡷⡊⢿⢸⢸⢸⣿⡆
-⠀⠀⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣟⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⡿⣽⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣄⣆⢿⣷⣿⣿⣷⣷⣷⣿⢾⣽⣻⢷⠁
-⠀⠀⠀⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⡻⢿⢈⣿⣿⣿⣿⣿⡿⣏⠗⡽⡻⠃⠀
-⠀⠀⠀⠀⠛⣏⢿⣿⣿⣿⣽⡟⣿⣿⣅⠻⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⣻⣾⣿⣿⣿⣿⣿⣿⠃⢘⡶⢱⠃⠀⠀
-⠀⠀⠀⠀⠀⠹⡾⣿⣿⣿⣾⣇⣼⡿⠎⠐⠿⠈⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢿⣿⣿⣿⣿⣿⣳⣿⣿⣿⣿⣿⡟⡽⡟⠃⠀⠘⠁⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠘⢆⠠⡻⣿⣿⣿⣿⣼⠇⠀⠀⠈⡿⠿⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢋⠸⠃⠋⣼⣿⡱⠃⡸⡫⣿⡟⠏⠀⠼⠀⠀⡠⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠈⠻⣦⡈⣿⢧⡀⠀⠀⠀⠛⡃⣶⣾⢻⣿⣿⣿⣿⣿⣿⡁⠀⠟⠀⠘⣽⡟⠀⠁⠈⠀⠠⠏⠀⡔⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠓⠊⠁⢰⣄⠀⠀⠀⠉⠻⣫⣾⣿⣿⣿⣿⣿⣿⠃⡠⠀⣰⡞⠋⠀⠀⠀⠀⡴⠀⠀⠘⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠓⠀⠀⢰⣼⣿⣿⣿⣿⣿⢫⣴⣿⠃⠀⠠⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠋⡻⣿⣿⣿⣿⡌⠁⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣿⣿⡧⠀⠰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢺⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠁
+<div class="card">
 
-██████╗ ██╗  ██╗ ██████╗ ███╗   ██╗███████╗
-██╔══██╗██║  ██║██╔═══██╗████╗  ██║██╔════╝
-██████╔╝███████║██║   ██║██╔██╗ ██║█████╗  
-██╔═══╝ ██╔══██║██║   ██║██║╚██╗██║██╔══╝  
-██║     ██║  ██║╚██████╔╝██║ ╚████║███████╗
-╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+  <div class="icon-wrap">
+    <div class="icon-ring2"></div>
+    <div class="icon-ring"></div>
+    <div class="icon-inner">🔒</div>
+  </div>
 
-██╗  ██╗██╗   ██╗███╗   ██╗████████╗███████╗██████╗ 
-██║  ██║██║   ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
-███████║██║   ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝
-██╔══██║██║   ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗
-██║  ██║╚██████╔╝██║ ╚████║   ██║   ███████╗██║  ██║
-╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
-            </pre>
-        </div>
+  <div class="code-badge">HTTP · 429</div>
 
-        <div class="error-code">ERROR 429 // OMEGA CLEARANCE REQUIRED</div>
-        
-        <h1 class="main-title">ДОСТУП ЗАПРЕЩЕН</h1>
-        
-        <p class="subtitle">
-            Лимит бесплатных запросов исчерпан.<br>
-            <strong>Приходите завтра с новыми запросами</strong> или приобретите дополнительный пакет для мгновенного продолжения работы.
-        </p>
+  <div class="heading">ДОСТУП ЗАПРЕЩЁН</div>
+  <div class="subheading">
+    Ваши <strong>запросы исчерпаны</strong>.<br>
+    Пополните баланс через бот, чтобы продолжить разведку.
+  </div>
 
-        <div class="terminal-log" id="terminalLog"></div>
+  <div class="terminal">
+    <div class="term-header">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+    </div>
+    <div class="term-body">
+      <div class="tl-r">✗ ERROR 429: Too Many Requests</div>
+      <div class="tl-d">  Remaining balance: <span class="tl-r">0</span></div>
+      <div class="tl-d">  Status: <span class="tl-r">BLOCKED</span></div>
+      <div class="tl-c">  Action: Purchase more searches</div>
+      <div>&nbsp;</div>
+      <div class="tl-d">❯ <span class="cursor"></span></div>
+    </div>
+  </div>
 
-        <div class="actions">
-            <a href="https://t.me/phone_hunter_vernidov_bot?start=buy" class="btn btn-primary" target="_blank">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <path d="M16 10a4 4 0 0 1-8 0"></path>
-                </svg>
-                Купить запросы → Бот
-            </a>
-            <a href="index.html" class="btn btn-secondary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                Вернуться на главную
-            </a>
-        </div>
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Использовано</span>
+      <span id="pct-label">100%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <a class="btn btn-primary" href="https://t.me/PhoneHunterBot" target="_blank">
+      🛒 Купить запросы
+    </a>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">или</div>
+      <div class="divider-line"></div>
     </div>
 
-    <script>
-        // Matrix background
-        const canvas = document.getElementById('matrix');
-        const ctx = canvas.getContext('2d');
-        
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        
-        const chars = '01PHONEHUNTEROSINT<>{}[]/*';
-        const fontSize = 14;
-        let columns = canvas.width / fontSize;
-        let drops = Array(Math.floor(columns)).fill(1);
-        
-        function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#ffffff');
-            gradient.addColorStop(1, '#333333');
-            ctx.fillStyle = gradient;
-            ctx.font = fontSize + 'px JetBrains Mono, monospace';
-            for (let i = 0; i < drops.length; i++) {
-                const text = chars[Math.floor(Math.random() * chars.length)];
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
-            }
-        }
-        setInterval(drawMatrix, 40);
+    <button class="btn btn-secondary" onclick="goBack()">
+      ← Вернуться назад
+    </button>
+  </div>
 
-        // Terminal typing
-        const logLines = [
-            { text: '> [SYS] Проверка квоты пользователя...', delay: 1600 },
-            { text: '> [NET] Лимит дневных запросов: 0 / 50', delay: 2400 },
-            { text: '> [ERR] ДОСТУП БЛОКИРОВАН. ТРЕБУЕТСЯ АПГРЕЙД.', delay: 3200, class: 'error' }
-        ];
+  <div class="footer">
+    PHONE HUNTER OSINT · HTTP 429 · BALANCE DEPLETED<br>
+    Разведка · Аналитика · Безопасность
+  </div>
 
-        const terminalLog = document.getElementById('terminalLog');
+</div>
 
-        logLines.forEach((line, index) => {
-            setTimeout(() => {
-                const div = document.createElement('div');
-                div.className = 'log-line visible';
-                if (line.class) {
-                    div.style.color = '#ffffff';
-                    div.style.fontWeight = '600';
-                }
-                if (index === logLines.length - 1) {
-                    div.innerHTML = line.text + '<span class="cursor"></span>';
-                } else {
-                    div.textContent = line.text;
-                }
-                terminalLog.appendChild(div);
-                terminalLog.scrollTop = terminalLog.scrollHeight;
-            }, line.delay);
-        });
-    </script>
+<script>
+// ── Matrix canvas (красный вариант) ──────────────────────────────────────
+(function () {
+  const canvas = document.getElementById('canvas');
+  const ctx    = canvas.getContext('2d');
+  const chars  = '0101フォンハンター429BLOCKED ACCESS DENIED フォン';
+  let cols, drops;
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    cols  = Math.floor(canvas.width / 18);
+    drops = new Array(cols).fill(1);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  setInterval(function () {
+    ctx.fillStyle = 'rgba(8,12,16,.09)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ff2d55';
+    ctx.font = '13px monospace';
+    for (let i = 0; i < cols; i++) {
+      const c = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillText(c, i * 18, drops[i] * 18);
+      if (drops[i] * 18 > canvas.height && Math.random() > .975) drops[i] = 0;
+      drops[i]++;
+    }
+  }, 65);
+})();
+
+// ── Progress bar animation ────────────────────────────────────────────────
+setTimeout(function () {
+  document.getElementById('progress-fill').style.transition = 'width 1.2s cubic-bezier(.4,0,.2,1)';
+  document.getElementById('progress-fill').style.width = '100%';
+}, 300);
+
+// ── Back button ───────────────────────────────────────────────────────────
+function goBack() {
+  // Если открыто через Telegram WebApp
+  try {
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.close();
+      return;
+    }
+  } catch (_) {}
+  // Иначе — обычный редирект
+  window.location.href = 'index.html';
+}
+
+// ── Init Telegram ─────────────────────────────────────────────────────────
+try {
+  if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+    // Настраиваем кнопку "Назад" в хедере Telegram
+    window.Telegram.WebApp.BackButton.show();
+    window.Telegram.WebApp.BackButton.onClick(function () {
+      window.location.href = 'index.html';
+    });
+  }
+} catch (e) {
+  console.warn('[TG]', e);
+}
+</script>
 </body>
 </html>
