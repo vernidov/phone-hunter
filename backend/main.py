@@ -1,55 +1,48 @@
-﻿import os, uvicorn, requests
-from fastapi import FastAPI, APIRouter, HTTPException, Header
+"""
+Phone Hunter BETA-1.0 — Main entry point
+FastAPI application that integrates API routes and OSINT modules.
+"""
+
+import os
+import uvicorn
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
-from modules.aggregator import Aggregator
 
-PORT = int(os.environ.get('PORT', 8000))
-BOT_SERVICE_URL = 'https://phone-hunter-bot.onrender.com'
+# Импортируем роуты из отдельного файла
+from api.routes.search import router as search_router
 
-app = FastAPI(title="Phone Hunter BETA-1.0", version="1.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+PORT = int(os.environ.get("PORT", 8000))
 
-router = APIRouter()
-aggregator = Aggregator()
+app = FastAPI(
+    title="Phone Hunter BETA-1.0",
+    version="1.0",
+    description="OSINT-инструмент для поиска информации по номеру телефона",
+)
 
-class SearchRequest(BaseModel):
-    phone: str
+# ─── CORS ──────────────────────────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@router.post("/search")
-async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header(None)):
-    phone = req.phone.strip()
-    if not phone:
-        raise HTTPException(400, "Phone number required")
-    
-    print(f"DEBUG: search request from tg_id: {x_telegram_id}")
-    
-    if x_telegram_id:
-        try:
-            resp = requests.post(
-                f'{BOT_SERVICE_URL}/check-balance',
-                json={'telegram_id': x_telegram_id},
-                timeout=10
-            )
-            print(f"DEBUG: bot response status: {resp.status_code}")
-            if resp.status_code == 429:
-                raise HTTPException(429, detail="No requests left today")
-            elif resp.status_code != 200:
-                print(f"DEBUG: bot returned {resp.status_code}")
-        except Exception as e:
-            print(f"DEBUG: bot check failed: {e}")
-    else:
-        print("DEBUG: No X-Telegram-ID header")
-    
-    result = await aggregator.full_search(phone)
-    return {"query_id": "direct", "result": result}
+# ─── Роуты API ────────────────────────────────────────────────────────────────
+app.include_router(search_router, prefix="/api/v1", tags=["search"])
 
-app.include_router(router, prefix="/api/v1", tags=["search"])
+
+# ─── Health check ─────────────────────────────────────────────────────────────
+@app.get("/health")
+@app.head("/health")
+async def health():
+    return {"status": "ok", "service": "phone-hunter", "version": "1.0"}
+
 
 @app.get("/")
-def root():
+async def root():
     return {"status": "active", "service": "Phone Hunter BETA-1.0", "mode": "cloud"}
 
+
+# ─── Запуск ───────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=False)

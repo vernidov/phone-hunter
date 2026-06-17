@@ -73,7 +73,35 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.send_response(404); self.end_headers()
     def do_GET(self):
-        self.send_response(200); self.end_headers(); self.wfile.write(b'bot is running')
+        path = self.path.split('?')[0]  # без query-параметров
+        if path == '/balance':
+            from urllib.parse import urlparse, parse_qs
+            params = parse_qs(urlparse(self.path).query)
+            tg_ids = params.get('telegram_id', [])
+            if not tg_ids:
+                self.send_response(400); self.end_headers()
+                self.wfile.write(b'{"error":"Missing telegram_id"}'); return
+            try:
+                tg_id = int(tg_ids[0])
+                user = get_user(tg_id)
+                if not user:
+                    self.send_response(200); self.end_headers()
+                    self.wfile.write(json.dumps({"remaining": 0, "user_exists": False}).encode())
+                    return
+                reset_daily(tg_id)
+                user = get_user(tg_id)
+                remaining = user[3] - user[4]  # requests_total - requests_used
+                self.send_response(200); self.end_headers()
+                self.wfile.write(json.dumps({"remaining": remaining, "user_exists": True}).encode())
+            except Exception as e:
+                self.send_response(500); self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+        elif path == '/health':
+            self.send_response(200); self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+        else:
+            self.send_response(200); self.end_headers()
+            self.wfile.write(b'bot is running')
 
 def start_web():
     HTTPServer(('0.0.0.0', PORT), Handler).serve_forever()

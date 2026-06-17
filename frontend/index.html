@@ -1025,7 +1025,7 @@ async function fetchBalance() {
     return null;
   }
   try {
-    const r = await fetch(BOT_ROOT + '/balance/' + TG_ID, {
+    const r = await fetch(API + '/balance', {
       method: 'GET',
       headers: { 'X-Telegram-ID': TG_ID }
     });
@@ -1050,18 +1050,16 @@ function updateBalance(n) {
 // WAKEUP (HEAD-запросы для пробуждения Render)
 // ═══════════════════════════════════════════════════════════
 async function wakeUpServices() {
-  const urls = [
-    API + '/health',
-    BOT_ROOT + '/health'
-  ];
   const results = { api: false, bot: false };
-  await Promise.allSettled(urls.map(async (url, i) => {
-    try {
-      const r = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(8000) });
-      if (i === 0) results.api = r.ok;
-      else         results.bot = r.ok;
-    } catch (_) {}
-  }));
+  // Параллельные GET-запросы для пробуждения Render (cold start)
+  await Promise.allSettled([
+    fetch(API + '/health', { method: 'GET', signal: AbortSignal.timeout(8000) })
+      .then(r => { results.api = r.ok; })
+      .catch(() => {}),
+    fetch(BOT_ROOT + '/health', { method: 'GET', signal: AbortSignal.timeout(8000) })
+      .then(r => { results.bot = r.ok; })
+      .catch(() => {}),
+  ]);
   return results;
 }
 
@@ -1145,7 +1143,7 @@ async function doSearch() {
     const data = await response.json();
 
     // Обновляем баланс
-    if (data.remaining !== undefined) updateBalance(data.remaining);
+    if (data.remaining_credits !== undefined) updateBalance(data.remaining_credits);
 
     termLine('✓', 'Scan complete. Target: ' + data.phone, 'green bold');
     termLine('─', '─'.repeat(36), 'dim');
@@ -1194,7 +1192,7 @@ async function doSearch() {
     ], fraud.complaints > 0 ? 'red-block' : 'green-block');
 
     termLine('─', '─'.repeat(36), 'dim');
-    termLine('✓', 'Осталось запросов: ' + (data.remaining !== undefined ? data.remaining : '?'), 'cyan');
+    termLine('✓', 'Осталось запросов: ' + (data.remaining_credits !== undefined ? data.remaining_credits : '?'), 'cyan');
 
     toast('Поиск завершён', 'success');
 

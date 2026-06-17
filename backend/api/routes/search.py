@@ -1,12 +1,15 @@
-﻿"""
+"""
 backend/api/routes/search.py
-Phone Hunter — исправленный роут поиска.
+Phone Hunter — роут поиска (исправленная версия).
 
 Исправления:
-  1. Правильный URL бота: https://phone-hunter-bot.onrender.com/check-balance
-  2. При ответе 429 от бота — возвращаем HTTP 429
-  3. Добавлено подробное логирование для отладки
-  4. Обработка таймаута и недоступности бота
+  1. Использует реальный OSINT-агрегатор вместо заглушки
+  2. Правильный URL бота: https://phone-hunter-bot.onrender.com/check-balance
+  3. При ответе 429 от бота — возвращаем HTTP 429
+  4. Эндпоинт /balance для проверки баланса без списания
+  5. Эндпоинт /health для проверки доступности сервиса
+  6. Подробное логирование для отладки
+  7. Маппинг данных модулей в единый формат ответа API
 """
 
 import logging
@@ -14,32 +17,36 @@ import httpx
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-# ─── Настройка логгера ───────────────────────────────────────────────────────
+# ─── Импортируем реальный агрегатор ────────────────────────────────────────────
+from modules.aggregator import Aggregator
+
+# ─── Настройка логгера ─────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("phone_hunter.search")
 
-# ─── Константы ───────────────────────────────────────────────────────────────
+# ─── Константы ────────────────────────────────────────────────────────────────
 BOT_URL = "https://phone-hunter-bot.onrender.com"
 BOT_CHECK_BALANCE_ENDPOINT = f"{BOT_URL}/check-balance"
-BOT_DEDUCT_ENDPOINT        = f"{BOT_URL}/deduct"       # если используешь отдельный endpoint
-BOT_TIMEOUT_SECONDS = 15   # Render cold-start может занять до 30с, но 15 достаточно
+BOT_TIMEOUT_SECONDS = 15  # Render cold-start может занять до 30с
 
 router = APIRouter()
+aggregator = Aggregator()
 
 
+# ─── Health check ──────────────────────────────────────────────────────────────
+@router.get("/health")
+@router.head("/health")
+async def health():
+    return {"status": "ok"}
+
+
+# ─── Вызов бота для проверки и списания баланса ───────────────────────────────
 async def _call_bot_check_balance(telegram_id: str) -> dict:
     """
     Вызывает бота для проверки и списания одного запроса.
-
-    Ожидаемые коды ответа от бота:
-      200  — запрос списан, в теле {"balance": N, "ok": true}
-      429  — нет запросов, в теле {"detail": "No credits"}
-      404  — пользователь не найден в боте
-
-    Возвращает: dict с ключами {"ok": bool, "balance": int, "status": int}
     """
     payload = {"telegram_id": str(telegram_id)}
     logger.info("Calling bot check-balance | telegram_id=%s | url=%s", telegram_id, BOT_CHECK_BALANCE_ENDPOINT)
@@ -57,7 +64,8 @@ async def _call_bot_check_balance(telegram_id: str) -> dict:
 
         if response.status_code == 200:
             data = response.json()
-            return {"ok": True, "balance": data.get("balance", 0), "status": 200}
+            remaining = data.get("remaining", 0)
+            return {"ok": True, "balance": int(remaining), "status": 200}
 
         if response.status_code == 429:
             return {"ok": False, "balance": 0, "status": 429}
@@ -66,7 +74,6 @@ async def _call_bot_check_balance(telegram_id: str) -> dict:
             logger.warning("User not found in bot | telegram_id=%s", telegram_id)
             return {"ok": False, "balance": 0, "status": 404}
 
-        # Любой другой код — логируем и считаем ошибкой
         logger.error("Unexpected bot response | status=%d | body=%s", response.status_code, response.text[:500])
         return {"ok": False, "balance": 0, "status": response.status_code}
 
@@ -79,7 +86,82 @@ async def _call_bot_check_balance(telegram_id: str) -> dict:
         raise HTTPException(status_code=503, detail="Bot service unavailable. Try again later.")
 
 
-# ─── Эндпоинт поиска ─────────────────────────────────────────────────────────
+# ─── Маппинг данных агрегатора в формат API ──────────────────────────────────
+
+def _map_hlr_data(hlr: dict) -> dict:
+    """Приводит HLR-данные к единому формату."""
+    return {
+        "operator": hlr.get("provider", hlr.get("operator", "N/A")),
+        "country": hlr.get("country", "N/A"),
+        "region": hlr.get("region", "N/A"),
+        "city": hlr.get("city", "N/A"),
+        "line_type": hlr.get("network_type", "unknown"),
+        "ported": bool(hlr.get("ported", False)),
+        "roaming": bool(hlr.get("roaming", False)),
+        "mcc": hlr.get("mcc", ""),
+        "mnc": hlr.get("mnc", ""),
+        "valid": bool(hlr.get("provider") or hlr.get("country")),
+    }
+
+
+def _map_messenger_data(msg: dict) -> dict:
+    """Приводит данные мессенджеров к формату с registered/username."""
+    mapped = {}
+    for app in ["telegram", "whatsapp", "viber", "signal", "wechat"]:
+        registered = bool(msg.get(app, False))
+        mapped[app] = {
+            "registered": registered,
+            "username": None,
+        }
+    return mapped
+
+
+def _map_leak_data(leak: dict) -> dict:
+    """Приводит данные утечек к единому формату."""
+    return {
+        "found": bool(leak.get("found_in_leaks", False)),
+        "count": len(leak.get("leaks", [])),
+        "sources": leak.get("leaks", []),
+        "emails": leak.get("emails", []),
+        "passwords": leak.get("passwords", []),
+    }
+
+
+def _map_fraud_data(fraud: dict) -> dict:
+    """Приводит данные о мошенничестве к единому формату."""
+    complaints = int(fraud.get("complaint_count", 0))
+    has_complaints = bool(fraud.get("has_complaints", False)) or complaints > 0
+    # Определяем уровень риска
+    if complaints > 5:
+        risk = "high"
+    elif complaints > 0 or has_complaints:
+        risk = "medium"
+    else:
+        risk = "low"
+    return {
+        "complaints": complaints,
+        "has_complaints": has_complaints,
+        "risk_level": risk,
+        "tags": fraud.get("tags", []),
+        "names": fraud.get("names", []),
+        "sources": fraud.get("sources", []),
+    }
+
+
+def _map_social_data(social: dict) -> dict:
+    """Приводит данные соцсетей."""
+    return {
+        "vk": social.get("vk"),
+        "ok": social.get("ok"),
+        "instagram": social.get("instagram"),
+        "facebook": social.get("facebook"),
+        "telegram": social.get("telegram"),
+        "whatsapp": social.get("whatsapp"),
+        "other_mentions": social.get("other_mentions", []),
+    }
+
+
+# ─── Эндпоинт поиска ──────────────────────────────────────────────────────────
 
 @router.post("/search")
 async def search_phone(
@@ -96,10 +178,10 @@ async def search_phone(
       { "phone": "+79991234567" }
 
     Возможные ответы:
-      200  — результат поиска
-      400  — не передан номер или заголовок
-      429  — нет запросов (баланс = 0)
-      503  — бот недоступен
+      200 — результат поиска с remaining_credits
+      400 — не передан номер или заголовок
+      429 — нет запросов (баланс = 0)
+      503 — бот недоступен
     """
 
     # 1. Валидация Telegram ID
@@ -136,6 +218,7 @@ async def search_phone(
                 content={
                     "detail": "No credits left. Please buy more requests in the bot.",
                     "code": "NO_CREDITS",
+                    "remaining_credits": 0,
                 },
             )
 
@@ -148,26 +231,44 @@ async def search_phone(
                 },
             )
 
-        # Прочие ошибки бота
         raise HTTPException(status_code=502, detail="Bot returned unexpected response")
 
     remaining = bot_result["balance"]
     logger.info("Credits deducted | telegram_id=%s | remaining=%d", x_telegram_id, remaining)
 
-    # 4. Выполняем реальный OSINT-поиск
-    result = await _perform_osint_lookup(phone)
+    # 4. Выполняем реальный OSINT-поиск через Aggregator
+    try:
+        raw = await aggregator.full_search(phone)
+    except Exception as e:
+        logger.error("OSINT search error | phone=%s | err=%s", phone, e)
+        raise HTTPException(status_code=500, detail="Search failed: internal error")
 
-    # 5. Возвращаем результат с остатком баланса
+    # 5. Маппинг данных в формат для фронтенда
+    hlr_data = _map_hlr_data(raw.get("hlr", {}))
+    messenger_data = _map_messenger_data(raw.get("messengers", {}))
+    leak_data = _map_leak_data(raw.get("leaks", {}))
+    fraud_data = _map_fraud_data(raw.get("fraud", {}))
+    social_data = _map_social_data(raw.get("social", {}))
+
+    # 6. Возвращаем результат с остатком баланса
     return JSONResponse(
         status_code=200,
         content={
             "ok": True,
             "phone": phone,
             "remaining_credits": remaining,
-            "data": result,
+            "hlr": hlr_data,
+            "messengers": messenger_data,
+            "leaks": leak_data,
+            "fraud": fraud_data,
+            "social": social_data,
+            "risk_score": raw.get("risk_score", 0),
+            "query": raw.get("query", {}),
         },
     )
 
+
+# ─── Проверка баланса (без списания) ──────────────────────────────────────────
 
 @router.get("/balance")
 async def get_balance(
@@ -178,6 +279,8 @@ async def get_balance(
 
     Возвращает текущий баланс пользователя без списания.
     Используется фронтендом при загрузке страницы.
+
+    Ответ: {"ok": bool, "balance": int}
     """
     if not x_telegram_id or not x_telegram_id.isdigit():
         raise HTTPException(status_code=400, detail="Missing or invalid X-Telegram-ID header")
@@ -193,52 +296,17 @@ async def get_balance(
 
         if response.status_code == 200:
             data = response.json()
-            return {"ok": True, "balance": data.get("balance", 0)}
+            bal = int(data.get("remaining", data.get("balance", 0)))
+            return {"ok": True, "balance": bal}
 
         if response.status_code == 404:
-            return {"ok": False, "balance": 0, "detail": "User not found in bot"}
+            logger.warning("User not found in bot | telegram_id=%s", x_telegram_id)
+            return {"ok": True, "balance": 0}
 
+        logger.error("Bot error | status=%d | body=%s", response.status_code, response.text[:200])
         raise HTTPException(status_code=502, detail="Bot error")
 
     except httpx.TimeoutException:
         raise HTTPException(status_code=503, detail="Bot timeout")
     except httpx.ConnectError:
         raise HTTPException(status_code=503, detail="Bot unavailable")
-
-
-# ─── Заглушка OSINT-логики ────────────────────────────────────────────────────
-# Замени эту функцию своей реальной реализацией (нумерация API, HLR и т.д.)
-
-async def _perform_osint_lookup(phone: str) -> dict:
-    """
-    Заглушка для реальной OSINT-логики.
-    Замени содержимое своей реализацией, например вызовами:
-      - numverify / abstract-api для оператора и страны
-      - HaveIBeenPwned для утечек
-      - CheckWho / WhoCallsMe для жалоб на мошенничество
-    """
-    import re
-
-    # Минимальная нормализация номера
-    digits = re.sub(r"\D", "", phone)
-
-    # Пример возвращаемой структуры (замени реальными запросами)
-    return {
-        "phone": phone,
-        "normalized": f"+{digits}",
-        "carrier": {
-            "name": "Unknown",
-            "country": "Unknown",
-            "line_type": "unknown",
-            "mnp": False,
-        },
-        "messengers": {
-            "telegram": None,
-            "whatsapp": None,
-            "viber": None,
-            "signal": None,
-        },
-        "leaks": [],
-        "fraud_reports": 0,
-        "source": "stub — replace with real OSINT calls",
-    }
