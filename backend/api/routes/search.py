@@ -17,6 +17,7 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
     if not phone:
         raise HTTPException(400, "Phone number required")
     
+    # ===== СПИСЫВАЕМ ЗАПРОС ЧЕРЕЗ БОТА =====
     if x_telegram_id:
         try:
             resp = requests.post(
@@ -26,10 +27,14 @@ async def search_phone(req: SearchRequest, x_telegram_id: Optional[str] = Header
             )
             if resp.status_code == 429:
                 raise HTTPException(429, detail="No requests left today")
-        except HTTPException:
-            raise
-        except Exception as e:
-            print(f"Bot check error: {e}")
+            elif resp.status_code != 200:
+                print(f"[!] Бот вернул {resp.status_code}, тело: {resp.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"[!] Ошибка при вызове бота: {e}")
+            # Если бот не ответил — пропускаем проверку (но лучше вернуть ошибку)
+            # raise HTTPException(503, detail="Bot unavailable")
+    else:
+        print("[!] Запрос без X-Telegram-ID — пропускаем списание")
     
     result = await aggregator.full_search(phone)
     return {"query_id": "direct", "result": result}
