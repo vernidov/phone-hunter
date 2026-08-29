@@ -1918,8 +1918,7 @@
 
         <div class="status-line">
             <span id="statusText">● <span class="off">OFFLINE</span></span>
-            <span>phone-hunter.onrender.com</span>
-            <span id="queryCount">0 queries</span>
+            
         </div>
     </div>
 </div>
@@ -2080,7 +2079,7 @@
     }
 
     // API
-    const API = 'https://phone-hunter.onrender.com/api/v1';
+    const API = 'http://127.0.0.1:8000/api/v1';
     let qc = +(localStorage.getItem('hqc')||'0');
     let cr = null;
     const se = document.getElementById('statusText'), ce = document.getElementById('queryCount');
@@ -2201,9 +2200,8 @@
         await typeLine(out, '<span class="c">[~] Processing results...</span>', 1200);
         
         try {
-            const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
-            const headers = { 'Content-Type': 'application/json' };
-            if (tg) headers['X-Telegram-ID'] = String(tg);
+            // Локальная работа без Telegram
+const headers = { 'Content-Type': 'application/json' };
             
             const resp = await fetch(API + '/search', { 
                 method: 'POST', 
